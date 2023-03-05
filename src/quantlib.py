@@ -15,24 +15,69 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 plt.style.use("seaborn-dark") 
 
-### Returns
+#### Time Series
+
+def getassets(tickers, 
+              startdate = "2011-12-31", 
+              enddate   = "2022-12-31", 
+              datatype  = "Adj Close",
+              dsource   = "yahoo",
+              interval  = "1d"):
+    try:
+        # Firstly, try with pandas datareader
+        assets = yf.download(
+            tickers = tickers,
+            start = startdate,
+            end = enddate,
+            interval = interval,
+            progress = False
+        )
+        if len(tickers) > 1:
+            assets.index = assets.index.tz_localize(None)          # change yf date format to match pandas datareader
+            assets = assets.filter(like = datatype)                # reduce to just selected columns
+            assets.columns = assets.columns.get_level_values(1)    # tickers as col names
+        else:
+            assets = assets.filter(like = datatype)                # reduce to just selected columns
+            assets = assets.rename(columns={datatype:tickers[0]})  # tickers as col names
+    except:
+        print("YF-ERROR: cannot download data using yahoo-finance")
+        print("Trying with Pandas DataReader")
+        syy, smm, sdd = startdate.split("-")
+        eyy, emm, edd = enddate.split("-")
+        assets = pd.DataFrame()
+        for i,asset_name in enumerate(tickers):
+            print("- Loading {} ({:.0f}/{:.0f})\t".format(asset_name,i+1,len(tickers)))
+            assets[asset_name] = data.DataReader(
+                asset_name, 
+                data_source = dsource,
+                start = datetime(int(syy),int(smm),int(sdd)), 
+                end = datetime(int(eyy),int(emm),int(edd))
+            )[datatype]
+    
+    return assets
+
+#### Returns
 
 def compound(s):
     '''
     Single compound rule for a pd.Dataframe or pd.Series of returns. 
+    In the former case, the method compounds the returns for every column (Series) by using pd.aggregate.
     The method returns a single number using prod(). 
     Note that this is equivalent to (but slower than): np.expm1( np.logp1(s).sum() )
     '''
-    if not isinstance(s, (pd.DataFrame, pd.Series)):
-        raise ValueError("Expected either a pd.DataFrame or pd.Series")
-    return (1 + s).prod(axis=0) - 1
+    if isinstance(s, pd.DataFrame):
+        return s.aggregate(compound)
+    elif isinstance(s, pd.Series):
+        return (1 + s).prod() - 1
+    else:
+        raise TypeError("Expected pd.DataFrame or pd.Series")
 
 def compound_returns(
     s, 
     start = 1
     ):
     '''
-    Compound a pd.Dataframe or pd.Series of returns from an initial default value equal to 100.
+    Compound a pd.Dataframe or pd.Series of returns from an inputi nitial start value.
     In the former case, the method compounds the returns for every column (Series) by using pd.aggregate. 
     The method returns a pd.Dataframe or pd.Series using cumprod(). 
     '''
@@ -115,57 +160,8 @@ def annualize_returns(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def is_normal(
-    s, 
-    siglev=0.05
-    ):
-    '''
-    Computes the Jarque-Bera test of a pd.Dataframe or pd.Series of returns.
-    To see if a series (of returns) is normally distributed.
-    Returns True or False according to whether the p-value 
-    is larger than input significance level=0.01.
-    '''
-    if isinstance(s, pd.DataFrame):
-        return s.aggregate( is_normal, siglev=siglev)
-    elif isinstance(s, pd.Series):
-        statistic, pvalue = stats.jarque_bera(s)
-        return pvalue > siglev
-    else:
-        raise TypeError("Expected pd.DataFrame or pd.Series")
-
-### Risk measures
+#### Downside Risk Measures
         
-def skewness(s):
-    '''
-    Computes the Skewness of a pd.Dataframe or pd.Series of returns.
-    '''
-    if isinstance(s, pd.DataFrame):
-        return s.aggregate(skewness)
-    elif isinstance(s, pd.Series):
-        # return ( ((s - s.mean()) / s.std(ddof=1))**3 ).mean()
-        return (1/s.shape[0])*((s - s.mean())**3).sum() / ((1/(s.shape[0]-1))*((s - s.mean())**2).sum())**(1.5)
-    else:
-        raise TypeError("Expected pd.DataFrame or pd.Series")
-
-def kurtosis(
-    s, 
-    excess = False):
-    '''
-    Computes the Kurtosis of a pd.Dataframe or pd.Series of returns.
-    If excess" is True, returns the "Excess Kurtosis", i.e., Kurtosis minus 3
-    '''
-    if isinstance(s, pd.DataFrame):
-        return s.aggregate(kurtosis, excess=excess)
-    elif isinstance(s, pd.Series):
-        # return ( ((s - s.mean()) / s.std(ddof=0))**4 ).mean()
-        k = ( (1/s.shape[0])*((s - s.mean())**4).sum() ) / ( (1/s.shape[0])*((s - s.mean())**2).sum() )**2
-        if excess:
-            return k - 3
-        else:
-            return k
-    else:
-        raise TypeError("Expected pd.DataFrame or pd.Series")
-
 def drawdown(
     s, 
     rets      = False, 
@@ -334,7 +330,22 @@ def var_normal(
         return s.mean() + q * s.std(ddof=ddof)
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
-        
+                             
+def es(
+    s,        
+    CL = 99/100
+    ):
+    '''
+    Computes the (1-CL)% Expected Shortfall of a pd.Dataframe or pd.Series of returns.
+    Differently from the 'es' method, the corresponding confidence level scenario is found (no interpolation). 
+    '''
+    if isinstance(s, pd.DataFrame):
+        return s.aggregate(es, CL=CL)
+    elif isinstance(s, pd.Series):
+        return s[s < var(s, CL=CL)].mean()
+    else:
+        raise TypeError("Expected pd.DataFrame or pd.Series")
+
 def VaR(
     s, 
     CL = 99/100
@@ -362,23 +373,8 @@ def ES(
     elif isinstance(s, pd.Series):
         return s.nsmallest(qscenario(s, CL=CL)).mean() 
     else:
-        raise TypeError("Expected pd.DataFrame or pd.Series")      
-                     
-def es(
-    s,        
-    CL = 99/100
-    ):
-    '''
-    Computes the (1-CL)% Expected Shortfall of a pd.Dataframe or pd.Series of returns.
-    Differently from the 'es' method, the corresponding confidence level scenario is found (no interpolation). 
-    '''
-    if isinstance(s, pd.DataFrame):
-        return s.aggregate(es, CL=CL)
-    elif isinstance(s, pd.Series):
-        return s[s < var(s, CL=CL)].mean()
-    else:
-        raise TypeError("Expected pd.DataFrame or pd.Series")
-
+        raise TypeError("Expected pd.DataFrame or pd.Series") 
+        
 def summary_stats(s, 
                   CL     = 99/100, 
                   ppy    = 252, 
@@ -419,53 +415,59 @@ def summary_stats(s,
         } 
         return pd.DataFrame(stats).T
     
-### Time Series
 
-def getassets(tickers, 
-              startdate = "2011-12-31", 
-              enddate   = "2022-12-31", 
-              datatype  = "Adj Close",
-              dsource   = "yahoo"):
-    try:
-        # Firstly, try with pandas datareader
-        assets = yf.download(
-            tickers = tickers,
-            start = startdate,
-            end = enddate,
-            progress = False
-        )
-        if len(tickers) > 1:
-            assets.index = assets.index.tz_localize(None)          # change yf date format to match pandas datareader
-            assets = assets.filter(like = datatype)                # reduce to just selected columns
-            assets.columns = assets.columns.get_level_values(1)    # tickers as col names
+#### Distributions 
+
+def skewness(s):
+    '''
+    Computes the Skewness of a pd.Dataframe or pd.Series of returns.
+    '''
+    if isinstance(s, pd.DataFrame):
+        return s.aggregate(skewness)
+    elif isinstance(s, pd.Series):
+        # return ( ((s - s.mean()) / s.std(ddof=1))**3 ).mean()
+        return (1/s.shape[0])*((s - s.mean())**3).sum() / ((1/(s.shape[0]-1))*((s - s.mean())**2).sum())**(1.5)
+    else:
+        raise TypeError("Expected pd.DataFrame or pd.Series")
+
+def kurtosis(
+    s, 
+    excess = False):
+    '''
+    Computes the Kurtosis of a pd.Dataframe or pd.Series of returns.
+    If excess" is True, returns the "Excess Kurtosis", i.e., Kurtosis minus 3
+    '''
+    if isinstance(s, pd.DataFrame):
+        return s.aggregate(kurtosis, excess=excess)
+    elif isinstance(s, pd.Series):
+        # return ( ((s - s.mean()) / s.std(ddof=0))**4 ).mean()
+        k = ( (1/s.shape[0])*((s - s.mean())**4).sum() ) / ( (1/s.shape[0])*((s - s.mean())**2).sum() )**2
+        if excess:
+            return k - 3
         else:
-            assets = assets.filter(like = datatype)                # reduce to just selected columns
-            assets = assets.rename(columns={datatype:tickers[0]})  # tickers as col names
-    except:
-        print("YF-ERROR: cannot download data using yahoo-finance")
-        print("Trying with Pandas DataReader")
-        syy, smm, sdd = startdate.split("-")
-        eyy, emm, edd = enddate.split("-")
-        assets = pd.DataFrame()
-        for i,asset_name in enumerate(tickers):
-            print("- Loading {} ({:.0f}/{:.0f})\t".format(asset_name,i+1,len(tickers)))
-            assets[asset_name] = data.DataReader(
-                asset_name, 
-                data_source = dsource,
-                start = datetime(int(syy),int(smm),int(sdd)), 
-                end = datetime(int(eyy),int(emm),int(edd))
-            )[datatype]
-    
-    return assets
+            return k
+    else:
+        raise TypeError("Expected pd.DataFrame or pd.Series")
 
-### Distributions 
+def is_normal(
+    s, 
+    siglev=0.05
+    ):
+    '''
+    Computes the Jarque-Bera test of a pd.Dataframe or pd.Series of returns.
+    To see if a series (of returns) is normally distributed.
+    Returns True or False according to whether the p-value 
+    is larger than input significance level=0.01.
+    '''
+    if isinstance(s, pd.DataFrame):
+        return s.aggregate( is_normal, siglev=siglev)
+    elif isinstance(s, pd.Series):
+        statistic, pvalue = stats.jarque_bera(s)
+        return pvalue > siglev
+    else:
+        raise TypeError("Expected pd.DataFrame or pd.Series")
 
-
-
-
-
-
-### Covariances and Correlations
+#### Covariances and Correlations
 
 def sample_cov(
     r, 
