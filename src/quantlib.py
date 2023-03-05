@@ -297,7 +297,7 @@ def qscenario(
     wscen = 1 if wscen < 1 else wscen
     return wscen
 
-def hvar(
+def var(
     s, 
     CL = 99/100
     ):
@@ -305,13 +305,13 @@ def hvar(
     Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns.
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(hvar, CL=CL)
+        return s.aggregate(var, CL=CL)
     elif isinstance(s, pd.Series):
         return s.quantile(q=1-CL)
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def hvar_normal(
+def var_normal(
     s, 
     CL   = 99/100, 
     cf   = False, 
@@ -323,19 +323,19 @@ def hvar_normal(
     Link: https://www.value-at-risk.net/the-cornish-fisher-expansion/
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(hvar_normal, CL=CL, cf=cf, ddof=ddof)
+        return s.aggregate(var_normal, CL=CL, cf=cf, ddof=ddof)
     elif isinstance(s, pd.Series):
         q = stats.norm.ppf(1-CL,loc=0,scale=1)
         if cf:
             S = s.skew()
             K = kurtosis(s, excess=False)
-            #q = q + (q**2 - 1)*S/6 + (q**3 - 3*q)*(K-3)/24 - (2*q**3 - 5*q)*(S**2)/36
-            q = q + (q**2 - 1)*S/6 + (q**3 - 3*q)*(K-3*s.std()**2)/24 - (2*q**3 - 5*q)*(S**2)/36
+            q = q + (q**2 - 1)*S/6 + (q**3 - 3*q)*(K-3)/24 - (2*q**3 - 5*q)*(S**2)/36
+            #q = q + (q**2 - 1)*S/6 + (q**3 - 3*q)*(K-3*s.std()**2)/24 - (2*q**3 - 5*q)*(S**2)/36
         return s.mean() + q * s.std(ddof=ddof)
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
         
-def HVaR(
+def VaR(
     s, 
     CL = 99/100
     ):
@@ -344,7 +344,7 @@ def HVaR(
     Differently from the 'hvar' method, the corresponding confidence level scenario is found (no interpolation). 
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(HVaR, CL=CL)
+        return s.aggregate(VaR, CL=CL)
     elif isinstance(s, pd.Series):
         return s.nsmallest(qscenario(s, CL=CL)).values[-1]
     else:
@@ -375,7 +375,7 @@ def es(
     if isinstance(s, pd.DataFrame):
         return s.aggregate(es, CL=CL)
     elif isinstance(s, pd.Series):
-        return s[s < hvar(s, CL=CL)].mean()
+        return s[s < var(s, CL=CL)].mean()
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
@@ -393,9 +393,9 @@ def summary_stats(s,
             "(Ann.) Std"          : annualize_std(s, ppy=ppy),
             "Skewness"            : skewness(s),
             "Kurtosis"            : kurtosis(s, excess=excess),
-            f"HVaR {CL}"          : hvar(s, CL=CL),
-            f"HVaR Normal {CL}"   : hvar_normal(s, CL=CL, cf=False),
-            f"HVaR CF Normal {CL}": hvar_normal(s, CL=CL, cf=True),
+            f"VaR {CL}"           : var(s, CL=CL),
+            f"Normal VaR {CL}"    : var_normal(s, CL=CL, cf=False),
+            f"Normal CF VaR {CL}" : var_normal(s, CL=CL, cf=True),
             f"ES {CL}"            : es(s, CL=CL),
             "Max Drawdown"        : drawdown(s, rets=True, maxd=True, percent=True),
             "Minimum"             : s.min(),
@@ -409,9 +409,9 @@ def summary_stats(s,
             "(Ann.) Std"          : s.aggregate(annualize_std, ppy=ppy),
             "Skewness"            : s.aggregate(skewness),
             "Kurtosis"            : s.aggregate(kurtosis, excess=excess),
-            f"HVaR {CL}"          : s.aggregate(hvar, CL=CL),
-            f"HVaR Normal {CL}"   : s.aggregate(hvar_normal, CL=CL, cf=False),
-            f"HVaR CF Normal {CL}": s.aggregate(hvar_normal, CL=CL, cf=True),
+            f"VaR {CL}"           : s.aggregate(var, CL=CL),
+            f"Normal VaR {CL}"    : s.aggregate(var_normal, CL=CL, cf=False),
+            f"Normal CF VaR {CL}" : s.aggregate(var_normal, CL=CL, cf=True),
             f"ES {CL}"            : s.aggregate(es, CL=CL),
             "Max Drawdown"        : s.aggregate(drawdown, rets=True, maxd=True, percent=True),
             "Minimum"             : s.aggregate(np.min),
