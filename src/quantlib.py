@@ -128,7 +128,7 @@ def is_normal(
     if isinstance(s, pd.DataFrame):
         return s.aggregate( is_normal, siglev=siglev)
     elif isinstance(s, pd.Series):
-        statistic, pvalue = scipy.stats.jarque_bera(s)
+        statistic, pvalue = stats.jarque_bera(s)
         return pvalue > siglev
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
