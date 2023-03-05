@@ -187,6 +187,8 @@ def drawdown(
             s = s.sort_index(ascending=True)
         if rets:
             s = compound_returns(s, start=1)
+            if percent is False:
+                percent = True
         MM = s.cummax()
         if percent:
             ddown = (s - MM) / MM
@@ -224,7 +226,9 @@ def drawup(
             s = s.sort_index(ascending=True)
         if rets:
             s = compound_returns(s, start=1)
-        mm = s.cummax()
+            if percent is False:
+                percent = True
+        mm = s.cummin()
         if percent:
             dup = (s - mm) / mm
         else:
