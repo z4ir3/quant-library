@@ -299,7 +299,7 @@ def qscenario(
 
 def var(
     s, 
-    CL = 99/100,
+    CL   = 99/100,
     left = True,
     ):
     '''
@@ -319,7 +319,8 @@ def var_normal(
     s, 
     CL   = 99/100, 
     cf   = False, 
-    ddof = 1
+    ddof = 1,
+    left = True
     ):
     '''
     Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns using the parametric Gaussian method.
@@ -327,9 +328,12 @@ def var_normal(
     Link: https://www.value-at-risk.net/the-cornish-fisher-expansion/
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(var_normal, CL=CL, cf=cf, ddof=ddof)
+        return s.aggregate(var_normal, CL=CL, cf=cf, ddof=ddof, left=left)
     elif isinstance(s, pd.Series):
-        q = stats.norm.ppf(1-CL,loc=0,scale=1)
+        if left: 
+            q = stats.norm.ppf(1-CL,loc=0,scale=1)
+        else:
+            q = stats.norm.ppf(CL,loc=0,scale=1)
         if cf:
             S = s.skew()
             K = kurtosis(s, excess=False)
