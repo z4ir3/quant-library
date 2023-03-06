@@ -299,15 +299,19 @@ def qscenario(
 
 def var(
     s, 
-    CL = 99/100
+    CL = 99/100,
+    left = True,
     ):
     '''
     Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns.
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(var, CL=CL)
+        return s.aggregate(var, CL=CL, left=left)
     elif isinstance(s, pd.Series):
-        return s.quantile(q=1-CL)
+        if left:
+            return s.quantile(q=1-CL)
+        else:
+            return s.quantile(q=CL)
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
