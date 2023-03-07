@@ -283,19 +283,6 @@ def annualize_std(
         return s * (ppy)**(0.5)
     else:
         raise TypeError("Expected pd.DataFrame, pd.Series, or int/float number")
-        
-def qscenario(
-    s, 
-    CL = 99/100
-    ):
-    '''
-    Returns the scenarios of an input series of returns 
-    corresponding to the (1-CL)% confidence level.
-    The computed scenario is rounded to zero decimal places.
-    '''
-    wscen = int( round(s.shape[0] * (1 - CL), 0) )
-    wscen = 1 if wscen < 1 else wscen
-    return wscen
 
 def var(
     s, 
@@ -357,6 +344,19 @@ def es(
         return s[s < var(s, CL=CL)].mean()
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
+
+def qscenario(
+    s, 
+    CL = 99/100
+    ):
+    '''
+    Returns the scenarios of an input series of returns 
+    corresponding to the (1-CL)% confidence level.
+    The computed scenario is rounded to zero decimal places.
+    '''
+    wscen = int( round(s.shape[0] * (1 - CL), 0) )
+    wscen = 1 if wscen < 1 else wscen
+    return wscen
 
 def VaR(
     s, 
