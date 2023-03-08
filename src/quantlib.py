@@ -332,16 +332,20 @@ def var_normal(
                              
 def es(
     s,        
-    CL = 99/100
+    CL = 99/100,
+    left = True
     ):
     '''
     Computes the (1-CL)% Expected Shortfall of a pd.Dataframe or pd.Series of returns.
     Differently from the 'es' method, the corresponding confidence level scenario is found (no interpolation). 
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(es, CL=CL)
+        return s.aggregate(es, CL=CL, left=left)
     elif isinstance(s, pd.Series):
-        return s[s < var(s, CL=CL)].mean()
+        if left:
+            return s[s < var(s, CL=CL, left=True)].mean()
+        else:
+            return s[s > var(s, CL=CL, left=False)].mean()
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
@@ -360,30 +364,38 @@ def qscenario(
 
 def VaR(
     s, 
-    CL = 99/100
+    CL = 99/100,
+    left = True
     ):
     '''
     Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns.
     Differently from the 'hvar' method, the corresponding confidence level scenario is found (no interpolation). 
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(VaR, CL=CL)
+        return s.aggregate(VaR, CL=CL, left=left)
     elif isinstance(s, pd.Series):
-        return s.nsmallest(qscenario(s, CL=CL)).values[-1]
+        if left:
+            return s.nsmallest(qscenario(s, CL=CL)).values[-1]
+        else:
+            return s.nsmallest(qscenario(s, CL=1-CL)).values[-1]
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")      
         
 def ES(
     s, 
-    CL = 99/100
+    CL = 99/100,
+    left = True
     ):
     '''
     Computes the (1-CL)% Expected Shortfall of a pd.Dataframe or pd.Series of returns 
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(ES, CL=CL)
+        return s.aggregate(ES, CL=CL, left=left)
     elif isinstance(s, pd.Series):
-        return s.nsmallest(qscenario(s, CL=CL)).mean() 
+        if left:
+            return s.nsmallest(qscenario(s, CL=CL)).mean() 
+        else:
+            return s.nlargest(qscenario(s, CL=CL)).mean()
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series") 
         
@@ -397,7 +409,7 @@ def summary_stats(s,
     '''
     if isinstance(s, pd.Series):
         stats = {
-            "(Ann.) Returns"      : annualize_returns(s, ppy=ppy),
+            "(Ann.) Return"       : annualize_returns(s, ppy=ppy),
             "(Ann.) Std"          : annualize_std(s, ppy=ppy),
             "Skewness"            : skewness(s),
             "Kurtosis"            : kurtosis(s, excess=excess),
@@ -413,7 +425,7 @@ def summary_stats(s,
     
     elif isinstance(s, pd.DataFrame):     
         stats = {
-            "(Ann.) Returns"      : s.aggregate(annualize_returns, ppy=ppy),
+            "(Ann.) Return"       : s.aggregate(annualize_returns, ppy=ppy),
             "(Ann.) Std"          : s.aggregate(annualize_std, ppy=ppy),
             "Skewness"            : s.aggregate(skewness),
             "Kurtosis"            : s.aggregate(kurtosis, excess=excess),
