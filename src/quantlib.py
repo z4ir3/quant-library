@@ -473,7 +473,7 @@ def kurtosis(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def isnormal(
+def is_normal(
     s, 
     siglev = 0.05
     ):
@@ -484,7 +484,7 @@ def isnormal(
     is larger than input significance level=0.01.
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(isnormal, siglev=siglev)
+        return s.aggregate(is_normal, siglev=siglev)
     elif isinstance(s, pd.Series):
         statistic, pvalue = stats.jarque_bera(s)
         return pvalue > siglev
@@ -540,29 +540,93 @@ def dist_normal(
     else:
         return stats.norm.pdf(x, loc=mu, scale=std)
 
-def gen_normal(
+def pdf_normal(
     mm  = -5, 
     MM  = 5, 
     mu  = 0, 
     std = 1, 
     dx  = 0.01,
-    cum = False,
     ):
     '''
-    Generation of PDF or CDF of Normal Distribution.
+    Generation of the PDF of Normal Distribution.
     Returns a pd.Series with:
-    - cum   : if False, returns a pd.Series with the PDF 
-            : if True, returns a pd.Series with the CDF 
     '''
     xx = np.arange(mm, MM, dx)
-    nn = [dist_normal(x, mu=mu, std=std, cum=cum) for x in xx]
-    ss = pd.Series(nn, index=xx)
-    if cum:
-        ss.name = "CDF"
-        return ss
+    nn = [dist_normal(x, mu=mu, std=std, cum=False) for x in xx]
+    nn = pd.Series(nn, index=xx)
+    nn.name = "PDF"
+    return nn
+
+def cdf_normal(
+    mm  = -5, 
+    MM  = 5, 
+    mu  = 0, 
+    std = 1, 
+    dx  = 0.01,
+    ):
+    '''
+    Generation of the CDF of Normal Distribution.
+    Returns a pd.Series with:
+    '''
+    xx = np.arange(mm, MM, dx)
+    nn = [dist_normal(x, mu=mu, std=std, cum=True) for x in xx]
+    nn = pd.Series(nn, index=xx)
+    nn.name = "CDF"
+    return nn
+
+def gen_normal_rvs(
+    mu   = 0,
+    std  = 1,
+    size = 1000
+    ):
+    '''
+    Returns a pd.Series of random variables normally distributed.
+    Using scipy.stats.
+    '''
+    return pd.Series(stats.norm.rvs(loc=mu, scale=std, size=size))
+
+def Gamma(x):
+    '''
+    Returns the Gamma function (from math)
+    '''
+    return gamma(x) if x != 0 else 0
+
+def dist_tstudent(
+    x, 
+    df = 3,
+    stdz = True
+    ):
+    '''
+    t-Student Distribution.
+    - stdz  : True for evaluation of the Standardized t-Student, i.e., with zero mean and unit variance
+            : False for the evalaution Standard t-Student, i.e., having zero mean and variance equal to df/(df-2)
+    '''
+    if stdz:
+        return 1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
     else:
-        ss.name = "PDF"
-        return ss
+        return 1/np.sqrt((np.pi*df))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/df)**(-0.5*(df+1))
+
+def gentstudent(
+    mm   = -5, 
+    MM   = 5,
+    df   = 3, 
+    stdz = True, 
+    dx   = 0.01
+    ):
+    '''
+    Generation of PDF of the Normal Distribution.
+    Returns a pd.Series:
+    - stdz  : True for the Standardized t-Student, i.e., with zero mean and unit variance
+            : False for the Standard t-Student, i.e., having zero mean and variance equal to df/(df-2)
+    '''
+    xx = np.arange(mm, MM, dx)
+    tt = [dist_tstudent(x, df=df, stdz=stdz) for x in xx]
+    tt = pd.Series(tt, index=xx)
+    if stdz:
+        tt.name = "Standarized t"
+    else:
+        tt.name = "Standard t"
+    return tt
 
 
 
