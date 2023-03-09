@@ -473,7 +473,7 @@ def kurtosis(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def is_normal(
+def isnormal(
     s, 
     siglev = 0.05
     ):
@@ -484,7 +484,7 @@ def is_normal(
     is larger than input significance level=0.01.
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate( is_normal, siglev=siglev)
+        return s.aggregate(isnormal, siglev=siglev)
     elif isinstance(s, pd.Series):
         statistic, pvalue = stats.jarque_bera(s)
         return pvalue > siglev
@@ -506,7 +506,6 @@ def mle(s,
     '''
     if pdf:
         x = np.arange(s.min()-mm, s.max()+mm, dx)
-    
     if dist == "n":
         mu, std = stats.norm.fit( s )
         if pdf:
@@ -523,6 +522,49 @@ def mle(s,
             return dict({'df': df, 'mu': mu})
     else:
         raise ValueError("Enter valid distribution value")
+
+def dist_normal(
+    x, 
+    mu  = 0, 
+    std = 1,
+    cum = False
+    ):
+    '''
+    Normal distribution.
+    - cum   : False for evaluation of the PDF input point x
+            : True for evaluation of the CDF at input point x
+    Using scipy.stats.
+    '''
+    if cum:
+        return stats.norm.cdf(x, loc=mu, scale=std)
+    else:
+        return stats.norm.pdf(x, loc=mu, scale=std)
+
+def gen_normal(
+    mm  = -5, 
+    MM  = 5, 
+    mu  = 0, 
+    std = 1, 
+    dx  = 0.01,
+    cum = False,
+    ):
+    '''
+    Generation of PDF or CDF of Normal Distribution.
+    Returns a pd.Series with:
+    - cum   : if False, returns a pd.Series with the PDF 
+            : if True, returns a pd.Series with the CDF 
+    '''
+    xx = np.arange(mm, MM, dx)
+    nn = [dist_normal(x, mu=mu, std=std, cum=cum) for x in xx]
+    ss = pd.Series(nn, index=xx)
+    if cum:
+        ss.name = "CDF"
+        return ss
+    else:
+        ss.name = "PDF"
+        return ss
+
+
 
 
 #### Covariances and Correlations
