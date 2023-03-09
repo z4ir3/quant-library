@@ -475,7 +475,7 @@ def kurtosis(
 
 def is_normal(
     s, 
-    siglev=0.05
+    siglev = 0.05
     ):
     '''
     Computes the Jarque-Bera test of a pd.Dataframe or pd.Series of returns.
@@ -490,6 +490,40 @@ def is_normal(
         return pvalue > siglev
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
+            
+def mle(s, 
+    dist =  "t",
+    pdf  = False,
+    mm   = 0,
+    dx   = 0.05
+    ):
+    '''
+    Best-Fit distribution approximation using Maximum-Likelihood-Estimation via scipy.stats. 
+    Returns distribution parameters, e.g., mean and standard location.
+    input:
+    - dist      : "t" (t-Student) and "n" (normal)
+    - pdf       : if True, returns a vector with the fitted pdf 
+    '''
+    if pdf:
+        x = np.arange(s.min()-mm, s.max()+mm, dx)
+    
+    if dist == "n":
+        mu, std = stats.norm.fit( s )
+        if pdf:
+            npdf = stats.norm.pdf(x, mu, std)
+            return dict({'mu': mu, 'std': std, 'pdf': npdf, 'x': x, 'dx': dx})
+        else:
+            return dict({'mu': mu, 'std': std})
+    elif dist == "t":
+        df, mu, std = stats.t.fit( s )
+        if pdf:
+            tpdf = stats.t.pdf(x, df, mu, std)
+            return dict({'df': df, 'mu': mu, 'std': std, 'pdf': tpdf, 'x': x, 'dx': dx})
+        else:
+            return dict({'df': df, 'mu': mu})
+    else:
+        raise ValueError("Enter valid distribution value")
+
 
 #### Covariances and Correlations
 
