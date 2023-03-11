@@ -548,7 +548,7 @@ def pdf_normal(
     dx  = 0.01,
     ):
     '''
-    Generation of the PDF of Normal Distribution.
+    Generation of the PDF of Normal Distribution within (mm,MM) range
     Returns a pd.Series with:
     '''
     xx = np.arange(mm, MM, dx)
@@ -565,7 +565,7 @@ def cdf_normal(
     dx  = 0.01,
     ):
     '''
-    Generation of the CDF of Normal Distribution.
+    Generation of the CDF of Normal Distribution within (mm,MM) range
     Returns a pd.Series with:
     '''
     xx = np.arange(mm, MM, dx)
