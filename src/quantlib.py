@@ -540,7 +540,7 @@ def dist_normal(
     else:
         return stats.norm.pdf(x, loc=mu, scale=std)
 
-def pdf_normal(
+def gen_pdf_normal(
     mm  = -5, 
     MM  = 5, 
     mu  = 0, 
@@ -552,12 +552,12 @@ def pdf_normal(
     Returns a pd.Series with:
     '''
     xx = np.arange(mm, MM, dx)
-    nn = [dist_normal(x, mu=mu, std=std, cum=False) for x in xx]
-    nn = pd.Series(nn, index=xx)
-    nn.name = "PDF"
-    return nn
+    pdf = [dist_normal(x, mu=mu, std=std, cum=False) for x in xx]
+    pdf = pd.Series(pdf, index=xx)
+    pdf.name = "PDF"
+    return pdf
 
-def cdf_normal(
+def gen_cdf_normal(
     mm  = -5, 
     MM  = 5, 
     mu  = 0, 
@@ -569,10 +569,10 @@ def cdf_normal(
     Returns a pd.Series with:
     '''
     xx = np.arange(mm, MM, dx)
-    nn = [dist_normal(x, mu=mu, std=std, cum=True) for x in xx]
-    nn = pd.Series(nn, index=xx)
-    nn.name = "CDF"
-    return nn
+    cdf = [dist_normal(x, mu=mu, std=std, cum=True) for x in xx]
+    cdf = pd.Series(cdf, index=xx)
+    cdf.name = "CDF"
+    return cdf
 
 def gen_normal_rvs(
     mu   = 0,
@@ -593,40 +593,86 @@ def Gamma(x):
 
 def dist_tstudent(
     x, 
-    df = 3,
-    stdz = True
+    df    = 3,
+    mu    = 0,
+    scale = 1, 
+    stdz  = True,
+    cum   = False 
     ):
     '''
     t-Student Distribution.
     - stdz  : True for evaluation of the Standardized t-Student, i.e., with zero mean and unit variance
-            : False for the evalaution Standard t-Student, i.e., having zero mean and variance equal to df/(df-2)
+            : False for the evalaution Standard t-Student, i.e., having mean equal to mu and variance equal to df/(df-2), for df > 2
     '''
     if stdz:
-        return 1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
+        # Standardized t-Student
+        if df <= 2.0:
+            raise ValueError("For Standardized t-Student enter df > 2")
+        if cum:
+            # FIXME
+            pass
+        else:
+            return 1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
     else:
-        return 1/np.sqrt((np.pi*df))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/df)**(-0.5*(df+1))
-
-def gentstudent(
-    mm   = -5, 
-    MM   = 5,
-    df   = 3, 
-    stdz = True, 
-    dx   = 0.01
+        # Standard t-Student
+        if cum:
+            return stats.t.cdf(x, df=df, loc=mu, scale=scale)
+        else:
+            # Equivalent to stats.t.pdf(x, df=df, loc=mu, scale=scale)
+            return 1/np.sqrt((np.pi*df))/scale*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+((x-mu)/scale)**2/df)**(-0.5*(df+1))
+        
+        
+        
+        
+        
+        
+        
+def gen_pdf_tstudent(
+    mm    = -5, 
+    MM    = 5, 
+    mu    = 0, 
+    scale = 1, 
+    stdz  = True, 
+    dx    = 0.01,
     ):
     '''
-    Generation of PDF of the Normal Distribution.
+    Generation of PDF of the t-Student Distribution.
     Returns a pd.Series:
     - stdz  : True for the Standardized t-Student, i.e., with zero mean and unit variance
             : False for the Standard t-Student, i.e., having zero mean and variance equal to df/(df-2)
     '''
     xx = np.arange(mm, MM, dx)
-    tt = [dist_tstudent(x, df=df, stdz=stdz) for x in xx]
-    tt = pd.Series(tt, index=xx)
+    pdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=False) for x in xx]
+    pdf = pd.Series(pdf, index=xx)
     if stdz:
-        tt.name = "Standarized t"
+        pdf.name = "Standarized t"
     else:
-        tt.name = "Standard t"
-    return tt
+        pdf.name = "Standard t"
+    return pdf
+
+def gen_cdf_tstudent(
+    mm    = -5, 
+    MM    = 5, 
+    mu    = 0, 
+    scale = 1, 
+    stdz  = True, 
+    dx    = 0.01,
+    ):
+    '''
+    Generation of CDF of the t-Student Distribution.
+    Returns a pd.Series:
+    - stdz  : True for the Standardized t-Student, i.e., with zero mean and unit variance
+            : False for the Standard t-Student, i.e., having zero mean and variance equal to df/(df-2)
+    '''
+    xx = np.arange(mm, MM, dx)
+    cdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=True) for x in xx]
+    cdf = pd.Series(cdf, index=xx)
+    if stdz:
+        cdf.name = "Standarized t"
+    else:
+        cdf.name = "Standard t"
+    return cdf
+
 
 
 
