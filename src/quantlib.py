@@ -3,11 +3,10 @@ import numpy as np
 import yfinance as yf
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
-
 #from scipy.optimize import minimize
 #from numpy.linalg import inv
-from math import gamma
-from scipy import stats
+from math import gamma 
+from scipy import stats, integrate
 from pandas_datareader import data
 from datetime import date, datetime, timedelta
 
@@ -403,10 +402,11 @@ def ES(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series") 
         
-def summary_stats(s, 
-                  CL     = 99/100, 
-                  ppy    = 252, 
-                  excess = False):
+def summary_stats(
+    s, 
+    CL     = 99/100, 
+    ppy    = 252, 
+    excess = False):
     '''
     Returns a dataframe containing annualized returns, annualized volatility, sharpe ratio, 
     skewness, kurtosis, historic VaR, Cornish-Fisher VaR, and Max Drawdown
@@ -460,7 +460,8 @@ def skewness(s):
 
 def kurtosis(
     s, 
-    excess = False):
+    excess = False
+    ):
     '''
     Computes the Kurtosis of a pd.Dataframe or pd.Series of returns.
     If excess" is True, returns the "Excess Kurtosis", i.e., Kurtosis minus 3
@@ -495,7 +496,8 @@ def is_normal(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
             
-def mle(s, 
+def mle(
+    s, 
     dist =  "t",
     pdf  = False,
     mm   = 0,
@@ -534,9 +536,9 @@ def dist_normal(
     cum = False
     ):
     '''
-    Normal distribution.
-    - cum   : False for evaluation of the PDF input point x
-            : True for evaluation of the CDF at input point x
+    Normal (or Gaussian) distribution:
+    - cum   : False for evaluating the PDF at input point x
+            : True for evaluating the CDF at input point x
     Using scipy.stats.
     '''
     if cum:
@@ -545,40 +547,42 @@ def dist_normal(
         return stats.norm.pdf(x, loc=mu, scale=std)
 
 def gen_pdf_normal(
-    mm  = -5, 
-    MM  = 5, 
+    a   = -5, 
+    b   = 5, 
     mu  = 0, 
     std = 1, 
     dx  = 0.01,
     ):
     '''
-    Generation of the PDF of Normal Distribution within (mm,MM) range
-    Returns a pd.Series with:
+    Generation of the Normal (or Gaussian) Distribution PDF with mean 'mu' and 
+    variance 'std', within the range (a,b).
+    Returns a pd.Series.
     '''
-    xx = np.arange(mm, MM, dx)
+    xx = np.arange(a, b, dx)
     pdf = [dist_normal(x, mu=mu, std=std, cum=False) for x in xx]
     pdf = pd.Series(pdf, index=xx)
     pdf.name = "PDF"
     return pdf
 
 def gen_cdf_normal(
-    mm  = -5, 
-    MM  = 5, 
+    a   = -5, 
+    b   = 5, 
     mu  = 0, 
     std = 1, 
     dx  = 0.01,
     ):
     '''
-    Generation of the CDF of Normal Distribution within (mm,MM) range
-    Returns a pd.Series with:
+    Generation of the Normal (or Gaussian) Distribution CDF with mean 'mu' and 
+    variance 'std', within the range (a,b).
+    Returns a pd.Series.
     '''
-    xx = np.arange(mm, MM, dx)
+    xx = np.arange(a, b, dx)
     cdf = [dist_normal(x, mu=mu, std=std, cum=True) for x in xx]
     cdf = pd.Series(cdf, index=xx)
     cdf.name = "CDF"
     return cdf
 
-def gen_normal_rvs(
+def gen_rvs_normal(
     mu   = 0,
     std  = 1,
     size = 1000
@@ -600,23 +604,24 @@ def dist_tstudent(
     df    = 3,
     mu    = 0,
     scale = 1, 
-    stdz  = True,
+    stdz  = False,
     cum   = False 
     ):
     '''
     t-Student Distribution.
-    - stdz  : True for evaluation of the Standardized t-Student, i.e., with zero mean and unit variance
-            : False for the evalaution Standard t-Student, i.e., having mean equal to mu and variance equal to df/(df-2), for df > 2
+    - stdz  : True for evaluating the "Standardized" t-Student (zero mean and unit variance)
+            : False for evaluating the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
     '''
     if stdz:
         # Standardized t-Student
         if df <= 2.0:
             raise ValueError("For Standardized t-Student enter df > 2")
-        if cum:
-            # FIXME
-            pass
         else:
-            return 1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
+            pdf = lambda x, df: 1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
+        if cum:
+            return np.round(integrate.quad(pdf, -1e2, x, args=(df,))[0], 5)
+        else:
+            return pdf(x,df)
     else:
         # Standard t-Student
         if cum:
@@ -624,28 +629,23 @@ def dist_tstudent(
         else:
             # Equivalent to stats.t.pdf(x, df=df, loc=mu, scale=scale)
             return 1/np.sqrt((np.pi*df))/scale*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+((x-mu)/scale)**2/df)**(-0.5*(df+1))
-        
-        
-        
-        
-        
-        
-        
+                
 def gen_pdf_tstudent(
-    mm    = -5, 
-    MM    = 5, 
+    a     = -5, 
+    b     = 5, 
+    df    = 3,
     mu    = 0, 
     scale = 1, 
-    stdz  = True, 
+    stdz  = False, 
     dx    = 0.01,
     ):
     '''
-    Generation of PDF of the t-Student Distribution.
-    Returns a pd.Series:
-    - stdz  : True for the Standardized t-Student, i.e., with zero mean and unit variance
-            : False for the Standard t-Student, i.e., having zero mean and variance equal to df/(df-2)
+    Generation of the t-Student Distribution PDF within the range (a,b).
+    Returns a pd.Series.
+    - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
+            : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
     '''
-    xx = np.arange(mm, MM, dx)
+    xx = np.arange(a, b, dx)
     pdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=False) for x in xx]
     pdf = pd.Series(pdf, index=xx)
     if stdz:
@@ -655,20 +655,21 @@ def gen_pdf_tstudent(
     return pdf
 
 def gen_cdf_tstudent(
-    mm    = -5, 
-    MM    = 5, 
+    a     = -5, 
+    b     = 5, 
+    df    = 3, 
     mu    = 0, 
     scale = 1, 
     stdz  = True, 
     dx    = 0.01,
     ):
     '''
-    Generation of CDF of the t-Student Distribution.
-    Returns a pd.Series:
-    - stdz  : True for the Standardized t-Student, i.e., with zero mean and unit variance
-            : False for the Standard t-Student, i.e., having zero mean and variance equal to df/(df-2)
+    Generation of the t-Student Distribution CDF within the range (a,b).
+    Returns a pd.Series.
+    - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
+            : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
     '''
-    xx = np.arange(mm, MM, dx)
+    xx = np.arange(a, b, dx)
     cdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=True) for x in xx]
     cdf = pd.Series(cdf, index=xx)
     if stdz:
@@ -677,6 +678,17 @@ def gen_cdf_tstudent(
         cdf.name = "Standard t"
     return cdf
 
+def gen_rvs_tstudent(
+    df   = 3, 
+    mu   = 0,
+    std  = 1,
+    size = 1000
+    ):
+    '''
+    Returns a pd.Series of random variables normally distributed.
+    Using scipy.stats.
+    '''
+    return pd.Series(stats.norm.rvs(loc=mu, scale=std, size=size))
 
 
 
