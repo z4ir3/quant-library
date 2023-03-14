@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import matplotlib.pyplot as plt
-import statsmodels.api as sm
+#import statsmodels.api as sm
+from statsmodels.distributions.empirical_distribution import ECDF 
 #from scipy.optimize import minimize
 #from numpy.linalg import inv
 from math import gamma 
@@ -529,6 +530,31 @@ def mle(
     else:
         raise ValueError("Enter valid distribution value")
 
+def ecdf(s):
+    F_ecdf = ECDF(s)    
+    F_emp = pd.Series(F_ecdf.y, index=F_ecdf.x, name="ECDF")
+    F_emp = F_emp.drop(index=F_emp.index[0])
+    return F_emp
+
+# FIXME TODO
+def hypothetical_cdf(
+    data, 
+    dist, 
+    distype = "t"
+    ):
+    if distype == "n":
+        return pd.Series(np.sort(stats.norm.cdf(data, loc=dist["mu"], scale=dist["sigma"])), 
+                         index=np.sort(data), 
+                         name="Fitted Normal CDF")  
+    elif distype == "t":
+        return pd.Series(np.sort(stats.t.cdf(data, df=dist["degf"], loc=dist["mu"], scale=dist["sigma"])), 
+                         index=np.sort(data),
+                         name="Fitted t-Student CDF")
+
+
+
+
+
 def dist_normal(
     x, 
     mu  = 0, 
@@ -679,18 +705,28 @@ def gen_cdf_tstudent(
     return cdf
 
 def gen_rvs_tstudent(
-    df   = 3, 
-    mu   = 0,
-    std  = 1,
-    size = 1000
+    df    = 3, 
+    mu    = 0,
+    scale = 1,
+    size  = 1000,
+    stdz  = False,
     ):
     '''
-    Returns a pd.Series of random variables normally distributed.
-    Using scipy.stats.
+    Returns a pd.Series of random variables t-Student distributed.
+    - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
+            : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
     '''
-    return pd.Series(stats.norm.rvs(loc=mu, scale=std, size=size))
+    if stdz:
+        # Standardized t-Student
+        if df <= 2.0:
+            raise ValueError("For Standardized t-Student enter df > 2")
+        else:
+            pdf = lambda x, df: 1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
+        # FIXME
 
-
+    else:
+        # Standard t-Student
+        return pd.Series(stats.t.rvs(df=df, loc=mu, scale=scale, size=size))
 
 
 #### Covariances and Correlations
