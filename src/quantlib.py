@@ -17,12 +17,16 @@ plt.style.use("seaborn-dark")
 
 #### Time Series
 
-def getassets(tickers, 
-              startdate = "2011-12-31", 
-              enddate   = "2022-12-31", 
-              datatype  = "Adj Close",
-              dsource   = "yahoo",
-              interval  = "1d"):
+def getassets(
+    tickers, 
+    startdate = "2011-12-31", 
+    enddate   = "2022-12-31", 
+    datatype  = "Adj Close",
+    dsource   = "yahoo",
+    interval  = "1d"
+    ):
+    '''
+    '''
     try:
         # Firstly, try with pandas datareader
         assets = yf.download(
@@ -589,7 +593,7 @@ def Gamma(x):
     '''
     Returns the Gamma function (from math)
     '''
-    return gamma(x) if x != 0 else 0
+    return gamma(x) if x != 0 else 1
 
 def dist_tstudent(
     x, 
