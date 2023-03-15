@@ -4,7 +4,7 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 #import statsmodels.api as sm
 from statsmodels.distributions.empirical_distribution import ECDF 
-#from scipy.optimize import minimize
+from scipy.optimize import minimize
 #from numpy.linalg import inv
 from math import gamma 
 from scipy import stats, integrate
@@ -587,7 +587,7 @@ def gen_pdf_normal(
     xx = np.arange(a, b, dx)
     pdf = [dist_normal(x, mu=mu, std=std, cum=False) for x in xx]
     pdf = pd.Series(pdf, index=xx)
-    pdf.name = "PDF"
+    pdf.name = "Normal"
     return pdf
 
 def gen_cdf_normal(
@@ -605,7 +605,7 @@ def gen_cdf_normal(
     xx = np.arange(a, b, dx)
     cdf = [dist_normal(x, mu=mu, std=std, cum=True) for x in xx]
     cdf = pd.Series(cdf, index=xx)
-    cdf.name = "CDF"
+    cdf.name = "Normal"
     return cdf
 
 def gen_rvs_normal(
@@ -710,6 +710,7 @@ def gen_rvs_tstudent(
     scale = 1,
     size  = 1000,
     stdz  = False,
+    tol   = 1e-3, 
     ):
     '''
     Returns a pd.Series of random variables t-Student distributed.
@@ -722,8 +723,25 @@ def gen_rvs_tstudent(
             raise ValueError("For Standardized t-Student enter df > 2")
         else:
             pdf = lambda x, df: 1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
-        # FIXME
+        
+        def objective(x, pdf, pu):
+            return abs( (integrate.quad(pdf, -1e2, x, args=(df,))[0] - pu) )
 
+        rup = np.random.uniform(0,1,size)
+        init_guess = 0.0
+        tt = []
+        # Slow...
+        for pu in rup:
+            result = minimize(objective, 
+                        init_guess,
+                        args    = (pdf, pu,),
+                        method  = "SLSQP",
+                        options = {"disp": False},
+                        tol     = tol,
+                        bounds  = None
+                        )
+            tt.append(result.x[0])
+        return pd.Series(tt)
     else:
         # Standard t-Student
         return pd.Series(stats.t.rvs(df=df, loc=mu, scale=scale, size=size))
