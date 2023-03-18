@@ -625,6 +625,7 @@ def Gamma(x):
     '''
     return gamma(x) if x != 0 else 1
 
+'''
 def dist_tstudent(
     x, 
     df    = 3,
@@ -633,11 +634,9 @@ def dist_tstudent(
     stdz  = False,
     cum   = False 
     ):
-    '''
-    t-Student Distribution.
-    - stdz  : True for evaluating the "Standardized" t-Student (zero mean and unit variance)
-            : False for evaluating the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
-    '''
+    # t-Student Distribution.
+    # - stdz  : True for evaluating the "Standardized" t-Student (zero mean and unit variance)
+    #         : False for evaluating the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
     if stdz:
         # Standardized t-Student
         if df <= 2.0:
@@ -655,7 +654,8 @@ def dist_tstudent(
         else:
             # Equivalent to stats.t.pdf(x, df=df, loc=mu, scale=scale)
             return 1/np.sqrt((np.pi*df))/scale*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+((x-mu)/scale)**2/df)**(-0.5*(df+1))
-                
+'''
+           
 def gen_pdf_tstudent(
     a     = -5, 
     b     = 5, 
@@ -704,6 +704,7 @@ def gen_cdf_tstudent(
         cdf.name = "Standard t"
     return cdf
 
+'''
 def gen_rvs_tstudent(
     df    = 3, 
     mu    = 0,
@@ -711,21 +712,21 @@ def gen_rvs_tstudent(
     size  = 1000,
     stdz  = False,
     tol   = 1e-3, 
+    AA = 10000
     ):
-    '''
-    Returns a pd.Series of random variables t-Student distributed.
-    - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
-            : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
-    '''
+    # Returns a pd.Series of random variables t-Student distributed.
+    # - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
+    #         : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
+
     if stdz:
         # Standardized t-Student
         if df <= 2.0:
             raise ValueError("For Standardized t-Student enter df > 2")
         else:
-            pdf = lambda x, df: 1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
+            pdf = lambda x, df, AA: AA*1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
         
-        def objective(x, pdf, pu):
-            return abs( (integrate.quad(pdf, -1e2, x, args=(df,))[0] - pu) )
+        def objective(x, pdf, df, AA, pu):
+            return abs( (integrate.quad(pdf, -1e2, x, args=(df,AA))[0] - pu) )
 
         rup = np.random.uniform(0,1,size)
         init_guess = 0.0
@@ -734,7 +735,7 @@ def gen_rvs_tstudent(
         for pu in rup:
             result = minimize(objective, 
                         init_guess,
-                        args    = (pdf, pu,),
+                        args    = (pdf, df, AA, pu,),
                         method  = "SLSQP",
                         options = {"disp": False},
                         tol     = tol,
@@ -745,7 +746,26 @@ def gen_rvs_tstudent(
     else:
         # Standard t-Student
         return pd.Series(stats.t.rvs(df=df, loc=mu, scale=scale, size=size))
-
+'''
+def gen_rvs_tstudent(
+    df    = 3, 
+    mu    = 0,
+    scale = 1,
+    size  = 1000,
+    stdz  = False,
+    ):
+    '''
+    Returns a pd.Series of random variables t-Student distributed.
+    t-Student distribution variance exists for df > 2.
+    - stdz  : True for the "Standardized" t-Student.
+              It has mean = mu and variance = 1, if df>2
+            : False for the "non-Standardized" t-Student 
+              It has mean = mu and variance = scale**2 * df/(df-2), if df>2
+    '''
+    if stdz:
+        return pd.Series(stats.t.rvs(df=df, loc=mu, scale=((df-2)/df)**0.5, size=size))
+    else:
+        return pd.Series(stats.t.rvs(df=df, loc=mu, scale=scale, size=size))
 
 #### Covariances and Correlations
 
