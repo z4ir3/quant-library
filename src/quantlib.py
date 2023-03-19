@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import matplotlib.pyplot as plt
+#import seaborn as sns
 #import statsmodels.api as sm
 from statsmodels.distributions.empirical_distribution import ECDF 
 from scipy.optimize import minimize
@@ -10,8 +11,6 @@ from math import gamma
 from scipy import stats, integrate
 from pandas_datareader import data
 from datetime import date, datetime, timedelta
-
-import seaborn as sns
 import matplotlib.pyplot as plt
 plt.style.use("seaborn-dark") 
 
@@ -724,50 +723,7 @@ def gen_rvs_tstudent(
     else:
         return pd.Series(stats.t.rvs(df=df, loc=mu, scale=scale, size=size))
 
-def some_pdf(x, mu, std): 
-    '''
-    Returns a user-defined pdf for (general) generation of random variables.
-    To be used with "gen_rvs_from_pdf" method.
-    The example returns the normal pdf.
-    '''
-    pdf = 1/np.sqrt(2*np.pi*std**2)*np.exp(-0.5*((x - mu)/std)**2)
-    return pdf
 
-def gen_rvs_from_pdf(
-    pdf, 
-    size   = 1000,
-    iguess = 0.0,
-    tol    = 1e-3, 
-    **kwargs
-    ):   
-    '''
-    Generates random variables distributed according to the input (user-defined) pdf function.
-    Input "pdf" should be a function and "kwargs" would be extra pdf input parameters.
-    For example, if "some_pdf" returns the normal distribution, then:
-    -> gen_rvs_from_pdf(some_pdf, mu=0, std=1)
-    returns normally distributed random variables with mean mu=0 and std=1.
-    ''' 
-    def objective(x, pdf, *args):
-        return abs( (integrate.quad(pdf, -1e2, x, args=(args[0]))[0] - pu) )
-
-    args = tuple()
-    for key in kwargs.keys():
-        args = args + (kwargs[key],)
-
-    # Slow...
-    rup = np.random.uniform(0,1,size)
-    rvs = []
-    for pu in rup:
-        result = minimize(objective, 
-                    iguess,
-                    args    = (pdf, args),
-                    method  = "SLSQP",
-                    options = {"disp": False},
-                    tol     = tol,
-                    bounds  = None
-                    )
-        rvs.append(result.x[0])
-    return pd.Series(rvs)
 
 #### Covariances and Correlations
 
