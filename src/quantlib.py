@@ -625,36 +625,6 @@ def Gamma(x):
     '''
     return gamma(x) if x != 0 else 1
 
-'''
-def dist_tstudent(
-    x, 
-    df    = 3,
-    mu    = 0,
-    scale = 1, 
-    stdz  = False,
-    cum   = False 
-    ):
-    # t-Student Distribution.
-    # - stdz  : True for evaluating the "Standardized" t-Student (zero mean and unit variance)
-    #         : False for evaluating the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
-    if stdz:
-        # Standardized t-Student
-        if df <= 2.0:
-            raise ValueError("For Standardized t-Student enter df > 2")
-        else:
-            pdf = lambda x, df: 1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
-        if cum:
-            return np.round(integrate.quad(pdf, -1e2, x, args=(df,))[0], 5)
-        else:
-            return pdf(x,df)
-    else:
-        # Standard t-Student
-        if cum:
-            return stats.t.cdf(x, df=df, loc=mu, scale=scale)
-        else:
-            # Equivalent to stats.t.pdf(x, df=df, loc=mu, scale=scale)
-            return 1/np.sqrt((np.pi*df))/scale*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+((x-mu)/scale)**2/df)**(-0.5*(df+1))
-'''
 def dist_tstudent(
     x, 
     df    = 3,
@@ -682,29 +652,6 @@ def dist_tstudent(
         else:
             return stats.t.pdf(x, df=df, loc=mu, scale=scale) 
 
-'''
-def gen_pdf_tstudent(
-    a     = -5, 
-    b     = 5, 
-    df    = 3,
-    mu    = 0, 
-    scale = 1, 
-    stdz  = False, 
-    dx    = 0.01,
-    ):
-    Generation of the t-Student Distribution PDF within the range (a,b).
-    Returns a pd.Series.
-    - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
-            : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
-    xx = np.arange(a, b, dx)
-    pdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=False) for x in xx]
-    pdf = pd.Series(pdf, index=xx)
-    if stdz:
-        pdf.name = "Standarized t"
-    else:
-        pdf.name = "Standard t"
-    return pdf
-'''
 def gen_pdf_tstudent(
     a     = -5, 
     b     = 5, 
@@ -715,7 +662,7 @@ def gen_pdf_tstudent(
     dx    = 0.01,
     ):
     '''
-    Generation of the t-Student Distribution PDF within the range(a,b)
+    Generation of the t-Student Distribution PDF within the range(a,b).
     Note that t-Student distribution variance exists for df > 2.
     - stdz  : True for evaluating the "Standardized" t-Student.
               It has mean = mu and variance = 1, if df>2
@@ -731,31 +678,6 @@ def gen_pdf_tstudent(
         pdf.name = "Non-Standardized t"
     return pdf
 
-
-
-'''
-def gen_cdf_tstudent(
-    a     = -5, 
-    b     = 5, 
-    df    = 3, 
-    mu    = 0, 
-    scale = 1, 
-    stdz  = True, 
-    dx    = 0.01,
-    ):
-    Generation of the t-Student Distribution CDF within the range (a,b).
-    Returns a pd.Series.
-    - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
-            : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
-    xx = np.arange(a, b, dx)
-    cdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=True) for x in xx]
-    cdf = pd.Series(cdf, index=xx)
-    if stdz:
-        cdf.name = "Standarized t"
-    else:
-        cdf.name = "Standard t"
-    return cdf
-'''
 def gen_cdf_tstudent(
     a     = -5, 
     b     = 5, 
@@ -766,7 +688,7 @@ def gen_cdf_tstudent(
     dx    = 0.01,
     ):
     '''
-    Generation of the t-Student Distribution CDF within the range(a,b)
+    Generation of the t-Student Distribution CDF within the range(a,b).
     Note that t-Student distribution variance exists for df > 2.
     - stdz  : True for evaluating the "Standardized" t-Student.
               It has mean = mu and variance = 1, if df>2
@@ -781,49 +703,7 @@ def gen_cdf_tstudent(
     else:
         cdf.name = "Non-Standardized t"
     return cdf
-'''
-def gen_rvs_tstudent(
-    df    = 3, 
-    mu    = 0,
-    scale = 1,
-    size  = 1000,
-    stdz  = False,
-    tol   = 1e-3, 
-    AA = 10000
-    ):
-    # Returns a pd.Series of random variables t-Student distributed.
-    # - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
-    #         : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
 
-    if stdz:
-        # Standardized t-Student
-        if df <= 2.0:
-            raise ValueError("For Standardized t-Student enter df > 2")
-        else:
-            pdf = lambda x, df, AA: AA*1/np.sqrt((np.pi*(df-2)))*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+(x**2)/(df-2))**(-0.5*(df+1))
-        
-        def objective(x, pdf, df, AA, pu):
-            return abs( (integrate.quad(pdf, -1e2, x, args=(df,AA))[0] - pu) )
-
-        rup = np.random.uniform(0,1,size)
-        init_guess = 0.0
-        tt = []
-        # Slow...
-        for pu in rup:
-            result = minimize(objective, 
-                        init_guess,
-                        args    = (pdf, df, AA, pu,),
-                        method  = "SLSQP",
-                        options = {"disp": False},
-                        tol     = tol,
-                        bounds  = None
-                        )
-            tt.append(result.x[0])
-        return pd.Series(tt)
-    else:
-        # Standard t-Student
-        return pd.Series(stats.t.rvs(df=df, loc=mu, scale=scale, size=size))
-'''
 def gen_rvs_tstudent(
     df    = 3, 
     mu    = 0,
@@ -844,7 +724,50 @@ def gen_rvs_tstudent(
     else:
         return pd.Series(stats.t.rvs(df=df, loc=mu, scale=scale, size=size))
 
+def some_pdf(x, mu, std): 
+    '''
+    Returns a user-defined pdf for (general) generation of random variables.
+    To be used with "gen_rvs_from_pdf" method.
+    The example returns the normal pdf.
+    '''
+    pdf = 1/np.sqrt(2*np.pi*std**2)*np.exp(-0.5*((x - mu)/std)**2)
+    return pdf
 
+def gen_rvs_from_pdf(
+    pdf, 
+    size   = 1000,
+    iguess = 0.0,
+    tol    = 1e-3, 
+    **kwargs
+    ):   
+    '''
+    Generates random variables distributed according to the input (user-defined) pdf function.
+    Input "pdf" should be a function and "kwargs" would be extra pdf input parameters.
+    For example, if "some_pdf" returns the normal distribution, then:
+    -> gen_rvs_from_pdf(some_pdf, mu=0, std=1)
+    returns normally distributed random variables with mean mu=0 and std=1.
+    ''' 
+    def objective(x, pdf, *args):
+        return abs( (integrate.quad(pdf, -1e2, x, args=(args[0]))[0] - pu) )
+
+    args = tuple()
+    for key in kwargs.keys():
+        args = args + (kwargs[key],)
+
+    # Slow...
+    rup = np.random.uniform(0,1,size)
+    rvs = []
+    for pu in rup:
+        result = minimize(objective, 
+                    iguess,
+                    args    = (pdf, args),
+                    method  = "SLSQP",
+                    options = {"disp": False},
+                    tol     = tol,
+                    bounds  = None
+                    )
+        rvs.append(result.x[0])
+    return pd.Series(rvs)
 
 #### Covariances and Correlations
 
