@@ -655,7 +655,56 @@ def dist_tstudent(
             # Equivalent to stats.t.pdf(x, df=df, loc=mu, scale=scale)
             return 1/np.sqrt((np.pi*df))/scale*Gamma(0.5*(df+1))/Gamma(0.5*df)*(1+((x-mu)/scale)**2/df)**(-0.5*(df+1))
 '''
-           
+def dist_tstudent(
+    x, 
+    df    = 3,
+    mu    = 0,
+    scale = 1, 
+    stdz  = False,
+    cum   = False 
+    ):
+    '''
+    t-Student Distribution.
+    Note that t-Student distribution variance exists for df > 2.
+    - stdz  : True for evaluating the "Standardized" t-Student.
+              It has mean = mu and variance = 1, if df>2
+            : False for evaluating the "non-Standardized" (or "Standard") t-Student 
+              It has mean = mu and variance = scale**2 * df/(df-2), if df>2
+    '''
+    if cum:
+        if stdz:
+            return stats.t.cdf(x, df=df, loc=mu, scale=((df-2)/df)**0.5)
+        else:
+            return stats.t.cdf(x, df=df, loc=mu, scale=scale)
+    else:
+        if stdz:
+            return stats.t.pdf(x, df=df, loc=mu, scale=((df-2)/df)**0.5)
+        else:
+            return stats.t.pdf(x, df=df, loc=mu, scale=scale) 
+
+'''
+def gen_pdf_tstudent(
+    a     = -5, 
+    b     = 5, 
+    df    = 3,
+    mu    = 0, 
+    scale = 1, 
+    stdz  = False, 
+    dx    = 0.01,
+    ):
+    Generation of the t-Student Distribution PDF within the range (a,b).
+    Returns a pd.Series.
+    - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
+            : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
+    xx = np.arange(a, b, dx)
+    pdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=False) for x in xx]
+    pdf = pd.Series(pdf, index=xx)
+    if stdz:
+        pdf.name = "Standarized t"
+    else:
+        pdf.name = "Standard t"
+    return pdf
+'''
 def gen_pdf_tstudent(
     a     = -5, 
     b     = 5, 
@@ -666,10 +715,12 @@ def gen_pdf_tstudent(
     dx    = 0.01,
     ):
     '''
-    Generation of the t-Student Distribution PDF within the range (a,b).
-    Returns a pd.Series.
-    - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
-            : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
+    Generation of the t-Student Distribution PDF within the range(a,b)
+    Note that t-Student distribution variance exists for df > 2.
+    - stdz  : True for evaluating the "Standardized" t-Student.
+              It has mean = mu and variance = 1, if df>2
+            : False for evaluating the "non-Standardized" (or "Standard") t-Student 
+              It has mean = mu and variance = scale**2 * df/(df-2), if df>2
     '''
     xx = np.arange(a, b, dx)
     pdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=False) for x in xx]
@@ -677,9 +728,12 @@ def gen_pdf_tstudent(
     if stdz:
         pdf.name = "Standarized t"
     else:
-        pdf.name = "Standard t"
+        pdf.name = "Non-Standardized t"
     return pdf
 
+
+
+'''
 def gen_cdf_tstudent(
     a     = -5, 
     b     = 5, 
@@ -689,12 +743,10 @@ def gen_cdf_tstudent(
     stdz  = True, 
     dx    = 0.01,
     ):
-    '''
     Generation of the t-Student Distribution CDF within the range (a,b).
     Returns a pd.Series.
     - stdz  : True for the "Standardized" t-Student (zero mean and unit variance)
             : False for the "Standard" t-Student (mean equal to mu and variance equal to df/(df-2), for df > 2)
-    '''
     xx = np.arange(a, b, dx)
     cdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=True) for x in xx]
     cdf = pd.Series(cdf, index=xx)
@@ -703,7 +755,32 @@ def gen_cdf_tstudent(
     else:
         cdf.name = "Standard t"
     return cdf
-
+'''
+def gen_cdf_tstudent(
+    a     = -5, 
+    b     = 5, 
+    df    = 3,
+    mu    = 0, 
+    scale = 1, 
+    stdz  = False, 
+    dx    = 0.01,
+    ):
+    '''
+    Generation of the t-Student Distribution CDF within the range(a,b)
+    Note that t-Student distribution variance exists for df > 2.
+    - stdz  : True for evaluating the "Standardized" t-Student.
+              It has mean = mu and variance = 1, if df>2
+            : False for evaluating the "non-Standardized" (or "Standard") t-Student 
+              It has mean = mu and variance = scale**2 * df/(df-2), if df>2
+    '''
+    xx = np.arange(a, b, dx)
+    cdf = [dist_tstudent(x, df=df, mu=mu, scale=scale, stdz=stdz, cum=True) for x in xx]
+    cdf = pd.Series(cdf, index=xx)
+    if stdz:
+        cdf.name = "Standarized t"
+    else:
+        cdf.name = "Non-Standardized t"
+    return cdf
 '''
 def gen_rvs_tstudent(
     df    = 3, 
@@ -759,13 +836,15 @@ def gen_rvs_tstudent(
     t-Student distribution variance exists for df > 2.
     - stdz  : True for the "Standardized" t-Student.
               It has mean = mu and variance = 1, if df>2
-            : False for the "non-Standardized" t-Student 
+            : False for the "non-Standardized" (or "Standard") t-Student 
               It has mean = mu and variance = scale**2 * df/(df-2), if df>2
     '''
     if stdz:
         return pd.Series(stats.t.rvs(df=df, loc=mu, scale=((df-2)/df)**0.5, size=size))
     else:
         return pd.Series(stats.t.rvs(df=df, loc=mu, scale=scale, size=size))
+
+
 
 #### Covariances and Correlations
 
