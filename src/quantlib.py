@@ -2,11 +2,11 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import matplotlib.pyplot as plt
-#import seaborn as sns
-#import statsmodels.api as sm
+# import seaborn as sns
+# import statsmodels.api as sm
 from statsmodels.distributions.empirical_distribution import ECDF 
 from scipy.optimize import minimize
-#from numpy.linalg import inv
+# from numpy.linalg import inv
 from math import gamma 
 from scipy import stats, integrate
 from pandas_datareader import data
@@ -14,15 +14,16 @@ from datetime import date, datetime, timedelta
 import matplotlib.pyplot as plt
 plt.style.use("seaborn-dark") 
 
-#### Time Series
+# Time Series
+
 
 def getassets(
     tickers, 
-    startdate = "2011-12-31", 
-    enddate   = "2022-12-31", 
-    datatype  = "Adj Close",
-    dsource   = "yahoo",
-    interval  = "1d"
+    startdate="2011-12-31", 
+    enddate  ="2022-12-31", 
+    datatype ="Adj Close",
+    dsource  ="yahoo",
+    interval ="1d"
     ):
     '''
     '''
@@ -458,10 +459,8 @@ def skewness(s):
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def kurtosis(
-    s, 
-    excess = False
-    ):
+def kurtosis(s, 
+             excess = False):
     '''
     Computes the Kurtosis of a pd.Dataframe or pd.Series of returns.
     If excess" is True, returns the "Excess Kurtosis", i.e., Kurtosis minus 3
@@ -478,10 +477,8 @@ def kurtosis(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def is_normal(
-    s, 
-    siglev = 0.05
-    ):
+def is_normal(s,
+              siglev = 0.05):
     '''
     Computes the Jarque-Bera test of a pd.Dataframe or pd.Series of returns.
     To see if a series (of returns) is normally distributed.
@@ -496,51 +493,74 @@ def is_normal(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
             
-def mle(
-    s, 
-    dist =  "t",
-    pdf  = False,
-    mm   = 0,
-    dx   = 0.05
-    ):
+def mle(s, 
+        dist = "t",
+        pdf  = False,
+        mm   = 0,
+        dx   = 0.05):
     '''
     Best-Fit distribution approximation using Maximum-Likelihood-Estimation via scipy.stats. 
     Returns distribution parameters, e.g., mean and standard location.
-    input:
-    - dist      : "t" (t-Student) and "n" (normal)
-    - pdf       : if True, returns a vector with the fitted pdf 
+    - dist  : "n" for Normal distribution fit 
+            : "t" for t-Student distribution fit
+            : "gdp" for Generalized Pareto distribution fit
+    - pdf   : if True, returns a vector with the fitted pdf
     '''
     if pdf:
         x = np.arange(s.min()-mm, s.max()+mm, dx)
+    
     if dist == "n":
-        mu, std = stats.norm.fit( s )
+        # Normal fit
+        mu, std = stats.norm.fit(s)
         if pdf:
             npdf = stats.norm.pdf(x, mu, std)
             return dict({'mu': mu, 'std': std, 'pdf': npdf, 'x': x, 'dx': dx})
         else:
             return dict({'mu': mu, 'std': std})
+    
     elif dist == "t":
-        df, mu, std = stats.t.fit( s )
+        # t-Student fit
+        df, mu, scale = stats.t.fit(s)
         if pdf:
-            tpdf = stats.t.pdf(x, df, mu, std)
-            return dict({'df': df, 'mu': mu, 'std': std, 'pdf': tpdf, 'x': x, 'dx': dx})
+            tpdf = stats.t.pdf(x, df, mu, scale)
+            return dict({'df': df, 'mu': mu, 'scale': scale, 'pdf': tpdf, 'x': x, 'dx': dx})
         else:
-            return dict({'df': df, 'mu': mu})
+            return dict({'df': df, 'mu': mu, 'scale': scale})
+    
+    elif dist == "gdp":
+        # Generalized Pareto fit:
+        # pdf = (1 + c*x)^(-1-1/c)
+        # con c = shape parameter
+        c, mu, std = stats.genpareto.fit(s)
+        # Note that 
+        # pdf = stats.genpareto.pdf(x, c, mu, std)
+        # is equivalent to standardize the pdf by using mu and std 
+        if pdf:
+            pdf = (1/std)*(1 + c/std*(x-mu))**(-1-1/c)
+            return dict({'c': c, 'mu': mu, 'std': std, 'pdf': pdf, 'x': x, 'dx': dx})
+        else:
+            return dict({'c': c, 'mu': mu, 'std': std})
+        
     else:
         raise ValueError("Enter valid distribution value")
+    
+
+
 
 def ecdf(s):
+    '''
+    Empirtical Cumulative Distribution Function (ECDF)
+    '''
     F_ecdf = ECDF(s)    
     F_emp = pd.Series(F_ecdf.y, index=F_ecdf.x, name="ECDF")
     F_emp = F_emp.drop(index=F_emp.index[0])
     return F_emp
 
 # FIXME TODO
-def hypothetical_cdf(
-    data, 
-    dist, 
-    distype = "t"
-    ):
+def hypothetical_cdf(data, 
+                     dist, 
+                     distype = "t"
+                     ):
     if distype == "n":
         return pd.Series(np.sort(stats.norm.cdf(data, loc=dist["mu"], scale=dist["sigma"])), 
                          index=np.sort(data), 
