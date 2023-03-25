@@ -16,15 +16,12 @@ plt.style.use("seaborn-dark")
 
 # Time Series
 
-
-def getassets(
-    tickers, 
-    startdate="2011-12-31", 
-    enddate  ="2022-12-31", 
-    datatype ="Adj Close",
-    dsource  ="yahoo",
-    interval ="1d"
-    ):
+def getassets(tickers, 
+              startdate = "2011-12-31", 
+              enddate   = "2022-12-31", 
+              datatype  = "Adj Close",
+              dsource   = "yahoo",
+              interval  = "1d"):
     '''
     '''
     try:
@@ -353,10 +350,8 @@ def es(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def qscenario(
-    s, 
-    CL = 99/100
-    ):
+def qscenario(s, 
+              CL = 99/100):
     '''
     Returns the scenarios of an input series of returns 
     corresponding to the (1-CL)% confidence level.
@@ -366,11 +361,10 @@ def qscenario(
     wscen = 1 if wscen < 1 else wscen
     return wscen
 
-def VaR(
-    s, 
-    CL = 99/100,
-    left = True
-    ):
+def VaR(s, 
+        CL = 99/100,
+        left = True
+        ):
     '''
     Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns.
     Differently from the 'hvar' method, the corresponding confidence level scenario is found (no interpolation). 
@@ -385,11 +379,10 @@ def VaR(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")      
         
-def ES(
-    s, 
-    CL = 99/100,
-    left = True
-    ):
+def ES(s, 
+       CL = 99/100,
+       left = True
+       ):
     '''
     Computes the (1-CL)% Expected Shortfall of a pd.Dataframe or pd.Series of returns 
     '''
@@ -492,88 +485,7 @@ def is_normal(s,
         return pvalue > siglev
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
-            
-def mle(s, 
-        dist = "t",
-        pdf  = False,
-        mm   = 0,
-        dx   = 0.05):
-    '''
-    Best-Fit distribution approximation using Maximum-Likelihood-Estimation via scipy.stats. 
-    Returns distribution parameters, e.g., mean and standard location.
-    - dist  : "n" for Normal distribution fit 
-            : "t" for t-Student distribution fit
-            : "gdp" for Generalized Pareto distribution fit
-    - pdf   : if True, returns a vector with the fitted pdf
-    '''
-    if pdf:
-        x = np.arange(s.min()-mm, s.max()+mm, dx)
-    
-    if dist == "n":
-        # Normal fit
-        mu, std = stats.norm.fit(s)
-        if pdf:
-            npdf = stats.norm.pdf(x, mu, std)
-            return dict({'mu': mu, 'std': std, 'pdf': npdf, 'x': x, 'dx': dx})
-        else:
-            return dict({'mu': mu, 'std': std})
-    
-    elif dist == "t":
-        # t-Student fit
-        df, mu, scale = stats.t.fit(s)
-        if pdf:
-            tpdf = stats.t.pdf(x, df, mu, scale)
-            return dict({'df': df, 'mu': mu, 'scale': scale, 'pdf': tpdf, 'x': x, 'dx': dx})
-        else:
-            return dict({'df': df, 'mu': mu, 'scale': scale})
-    
-    elif dist == "gdp":
-        # Generalized Pareto fit:
-        # pdf = (1 + c*x)^(-1-1/c)
-        # con c = shape parameter
-        c, mu, std = stats.genpareto.fit(s)
-        # Note that 
-        # pdf = stats.genpareto.pdf(x, c, mu, std)
-        # is equivalent to standardize the pdf by using mu and std 
-        if pdf:
-            pdf = (1/std)*(1 + c/std*(x-mu))**(-1-1/c)
-            return dict({'c': c, 'mu': mu, 'std': std, 'pdf': pdf, 'x': x, 'dx': dx})
-        else:
-            return dict({'c': c, 'mu': mu, 'std': std})
-        
-    else:
-        raise ValueError("Enter valid distribution value")
-    
-
-
-
-def ecdf(s):
-    '''
-    Empirtical Cumulative Distribution Function (ECDF)
-    '''
-    F_ecdf = ECDF(s)    
-    F_emp = pd.Series(F_ecdf.y, index=F_ecdf.x, name="ECDF")
-    F_emp = F_emp.drop(index=F_emp.index[0])
-    return F_emp
-
-# FIXME TODO
-def hypothetical_cdf(data, 
-                     dist, 
-                     distype = "t"
-                     ):
-    if distype == "n":
-        return pd.Series(np.sort(stats.norm.cdf(data, loc=dist["mu"], scale=dist["sigma"])), 
-                         index=np.sort(data), 
-                         name="Fitted Normal CDF")  
-    elif distype == "t":
-        return pd.Series(np.sort(stats.t.cdf(data, df=dist["degf"], loc=dist["mu"], scale=dist["sigma"])), 
-                         index=np.sort(data),
-                         name="Fitted t-Student CDF")
-
-
-
-
-
+                
 def dist_normal(
     x, 
     mu  = 0, 
@@ -787,6 +699,94 @@ def gen_rvs_from_pdf(
                     )
         rvs.append(result.x[0])
     return pd.Series(rvs)
+
+def distfit(s, 
+            dtype: str  = "t",
+            pdf: bool   = False,
+            mm: float   = 0,
+            dx: float   = 0.05) -> dict:
+    '''
+    Best-Fit distribution approximation using Maximum-Likelihood-Estimation via scipy.stats. 
+    Returns a dictionary with distribution parameters, e.g., mean and standard location.
+    - dist  : "n" for Normal distribution fit 
+            : "t" for t-Student distribution fit
+            : "gdp" for Generalized Pareto distribution fit
+    - pdf   : if True, returns a vector with the fitted pdf
+    '''
+    if pdf:
+        x = np.arange(s.min()-mm, s.max()+mm, dx)
+    
+    if dtype == "n":
+        # Normal fit
+        mu, std = stats.norm.fit(s)
+        if pdf:
+            npdf = stats.norm.pdf(x, mu, std)
+            return dict({'mu': mu, 'std': std, 'pdf': npdf, 'x': x, 'dx': dx})
+        else:
+            return dict({'mu': mu, 'std': std})
+    
+    elif dtype == "t":
+        # t-Student fit
+        df, mu, scale = stats.t.fit(s)
+        if pdf:
+            tpdf = stats.t.pdf(x, df, mu, scale)
+            return dict({'df': df, 'mu': mu, 'scale': scale, 'pdf': tpdf, 'x': x, 'dx': dx})
+        else:
+            return dict({'df': df, 'mu': mu, 'scale': scale})
+    
+    elif dtype == "gdp":
+        # Generalized Pareto fit:
+        # pdf = (1 + c*x)^(-1-1/c)
+        # con c = shape parameter
+        c, mu, std = stats.genpareto.fit(s)
+        # Note that 
+        # pdf = stats.genpareto.pdf(x, c, mu, std)
+        # is equivalent to standardize the pdf by using mu and std 
+        if pdf:
+            pdf = (1/std)*(1 + c/std*(x-mu))**(-1-1/c)
+            return dict({'c': c, 'mu': mu, 'std': std, 'pdf': pdf, 'x': x, 'dx': dx})
+        else:
+            return dict({'c': c, 'mu': mu, 'std': std})
+        
+    else:
+        raise ValueError("Enter valid distribution value")
+    
+def empirical_cdf(s) -> pd.Series:
+    '''
+    Returns the Empirical Cumulative Distribution Function (ECDF)
+    of an input return series
+    '''
+    F_ecdf = ECDF(s)    
+    F_emp = pd.Series(F_ecdf.y, index=F_ecdf.x, name="ECDF")
+    F_emp = F_emp.drop(index=F_emp.index[0])
+    return F_emp
+
+def hypothetical_cdf(s, 
+                     dist: dict, 
+                     dtype: str = "t") -> pd.Series:
+    
+    if not isinstance(dist,dict):
+        raise ValueError("OJO")
+
+    if dtype == "n":
+        cdf = stats.norm.cdf(s, loc=dist["mu"], scale=dist["scale"])
+        name = "Fitted Normal CDF"
+    
+    if dtype == "t":
+        cdf = stats.t.cdf(s, df=dist["df"], loc=dist["mu"], scale=dist["scale"])  
+        name = "Fitted t-Student CDF"
+
+    return pd.Series(np.sort(cdf), index=np.sort(s), name=name)
+
+    # if dtype == "n":
+    #     return pd.Series(np.sort(stats.norm.cdf(data, loc=dist["mu"], scale=dist["sigma"])), 
+    #                      index=np.sort(data), 
+    #                      name="Fitted Normal CDF")  
+    # elif dtype == "t":
+    #     return pd.Series(np.sort(stats.t.cdf(data, df=dist["degf"], loc=dist["mu"], scale=dist["sigma"])), 
+    #                      index=np.sort(data),
+    #                      name="Fitted t-Student CDF")
+
 
 
 #### Covariances and Correlations
