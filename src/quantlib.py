@@ -17,11 +17,11 @@ plt.style.use("seaborn-dark")
 # Time Series
 
 def getassets(tickers, 
-              startdate = "2011-12-31", 
-              enddate   = "2022-12-31", 
-              datatype  = "Adj Close",
-              dsource   = "yahoo",
-              interval  = "1d"):
+              startdate: str = "2011-12-31", 
+              enddate: str   = "2022-12-31", 
+              datatype: str  = "Adj Close",
+              dsource: str   = "yahoo",
+              interval: str  = "1d"):
     '''
     '''
     try:
@@ -59,7 +59,7 @@ def getassets(tickers,
 
 #### Returns
 
-def compound(s):
+def compound(s) -> pd.Series or pd.DataFrame:
     '''
     Single compound rule for a pd.Dataframe or pd.Series of returns. 
     In the former case, the method compounds the returns for every column (Series) by using pd.aggregate.
@@ -751,6 +751,7 @@ def distfit(s,
     else:
         raise ValueError("Enter valid distribution value")
     
+
 def empirical_cdf(s) -> pd.Series:
     '''
     Returns the Empirical Cumulative Distribution Function (ECDF)
@@ -761,15 +762,15 @@ def empirical_cdf(s) -> pd.Series:
     F_emp = F_emp.drop(index=F_emp.index[0])
     return F_emp
 
+
 def hypothetical_cdf(s, 
-                     dist: dict, 
+                    #  dist: dict, 
                      dtype: str = "t") -> pd.Series:
     
-    if not isinstance(dist,dict):
-        raise ValueError("OJO")
+    dist = distfit(s, dtype=dtype, pdf=False)
 
     if dtype == "n":
-        cdf = stats.norm.cdf(s, loc=dist["mu"], scale=dist["scale"])
+        cdf = stats.norm.cdf(s, loc=dist["mu"], scale=dist["std"])
         name = "Fitted Normal CDF"
     
     if dtype == "t":
@@ -777,16 +778,6 @@ def hypothetical_cdf(s,
         name = "Fitted t-Student CDF"
 
     return pd.Series(np.sort(cdf), index=np.sort(s), name=name)
-
-    # if dtype == "n":
-    #     return pd.Series(np.sort(stats.norm.cdf(data, loc=dist["mu"], scale=dist["sigma"])), 
-    #                      index=np.sort(data), 
-    #                      name="Fitted Normal CDF")  
-    # elif dtype == "t":
-    #     return pd.Series(np.sort(stats.t.cdf(data, df=dist["degf"], loc=dist["mu"], scale=dist["sigma"])), 
-    #                      index=np.sort(data),
-    #                      name="Fitted t-Student CDF")
-
 
 
 #### Covariances and Correlations
@@ -805,6 +796,7 @@ def sample_cov(
     else:
         raise ValueError("Expected df to be a pd.Series or pd.DataFrame of returns")
 
+
 def cc_cov(r):
     '''
     Returns a covariance matrix using the Elton/Gruber Constant Correlation model
@@ -821,6 +813,7 @@ def cc_cov(r):
     # the product of the stds is done via np.outer
     ccov = ccor * np.outer(r.std(), r.std())
     return pd.DataFrame(ccov, index=r.columns, columns=r.columns)
+
 
 def shrinkage_cov(r, delta=0.5):
     '''
