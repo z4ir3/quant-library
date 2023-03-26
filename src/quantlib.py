@@ -73,10 +73,8 @@ def compound(s) -> pd.Series or pd.DataFrame:
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def compound_returns(
-    s, 
-    start = 1
-    ):
+def compound_returns(s, 
+                     start: float = 1) -> pd.Series or pd.DataFrame:
     '''
     Compound a pd.Dataframe or pd.Series of returns from an inputi nitial start value.
     In the former case, the method compounds the returns for every column (Series) by using pd.aggregate. 
@@ -89,12 +87,10 @@ def compound_returns(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def compute_returns(
-    s, 
-    mpor      = 1, 
-    ascending = True, 
-    dropna    = False
-    ):
+def compute_returns(s, 
+                    mpor: int       = 1, 
+                    ascending: bool = True, 
+                    dropna: bool    = False) -> pd.Series or pd.DataFrame:
     '''
     Computes the arithmetic returns of a pd.Dataframe or pd.Series of prices 
     In the former case, it computes the returns for every column (Series) by using pd.aggregate.
@@ -102,7 +98,7 @@ def compute_returns(
     Default MPOR value = 1.
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate( compute_returns, mpor=mpor, ascending=ascending, dropna=dropna)
+        return s.aggregate(compute_returns, mpor=mpor, ascending=ascending, dropna=dropna)
     elif isinstance(s, pd.Series):
         if ascending:
             r = s / s.shift(mpor) - 1
@@ -115,12 +111,10 @@ def compute_returns(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
         
-def compute_logreturns(
-    s, 
-    mpor      = 1, 
-    ascending = True, 
-    dropna    = False
-    ):
+def compute_logreturns(s, 
+                       mpor: int       = 1, 
+                       ascending: bool = True,
+                       dropna: bool    = False) -> pd.Series or pd.DataFrame:
     '''
     Computes the log-returns returns of a pd.Dataframe or pd.Series of prices.
     In the former case, it computes the returns for every column (Series) by using pd.aggregate.
@@ -128,12 +122,12 @@ def compute_logreturns(
     Default MPOR value = 1.
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate( compute_logreturns, mpor=mpor, ascending=ascending, dropna=dropna)
+        return s.aggregate(compute_logreturns, mpor=mpor, ascending=ascending, dropna=dropna)
     elif isinstance(s, pd.Series):
         if ascending:
-            r = np.log( s / s.shift(mpor) )
+            r = np.log(s / s.shift(mpor))
         else:
-            r = np.log( s / s.shift(-mpor) )
+            r = np.log(s / s.shift(-mpor))
         if dropna:
             return r.dropna()
         else:
@@ -141,10 +135,8 @@ def compute_logreturns(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def annualize_returns(
-    s, 
-    ppy
-    ):
+def annualize_returns(s, 
+                      ppy: int) -> pd.Series or pd.DataFrame:
     '''
     Computes the annualized returns (returns-per-year) of a pd.Dataframe or pd.Series of returns.
     The variable ppy can be, for example
@@ -163,13 +155,11 @@ def annualize_returns(
 
 #### Downside Risk Measures
         
-def drawdown(
-    s, 
-    rets      = False, 
-    maxd      = True,
-    percent   = True, 
-    ascending = True
-    ):
+def drawdown(s, 
+             rets: bool      = False, 
+             maxd: bool      = True,
+             percent: bool   = True, 
+             ascending: bool = True) -> pd.Series or pd.DataFrame:
     '''
     Computes the drawdown of a pd.Dataframe or pd.Series of prices.
     - rets = True, the input DataFrame/Series consists of returns (prices obtained by compounding)
@@ -202,13 +192,11 @@ def drawdown(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
         
-def drawup(
-    s, 
-    rets      = False, 
-    maxd      = True,
-    percent   = True, 
-    ascending = True
-    ):
+def drawup(s, 
+           rets: bool      = False, 
+           maxd: bool      = True,
+           percent: bool   = True, 
+           ascending: bool = True) -> pd.Series or pd.DataFrame:
     '''
     Computes the drawup of a pd.Dataframe or pd.Series of prices.
     - rets = True, the input DataFrame/Series consists of returns (prices obtained by compounding)
