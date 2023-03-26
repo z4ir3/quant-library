@@ -14,14 +14,17 @@ from datetime import date, datetime, timedelta
 import matplotlib.pyplot as plt
 plt.style.use("seaborn-dark") 
 
+
 # Time Series
 
-def getassets(tickers, 
-              startdate: str = "2011-12-31", 
-              enddate: str   = "2022-12-31", 
-              datatype: str  = "Adj Close",
-              dsource: str   = "yahoo",
-              interval: str  = "1d"):
+def getassets(
+        tickers, 
+        startdate: str = "2011-12-31", 
+        enddate: str   = "2022-12-31", 
+        datatype: str  = "Adj Close",
+        dsource: str   = "yahoo",
+        interval: str  = "1d"
+    ) -> pd.DataFrame:
     '''
     '''
     try:
@@ -57,6 +60,7 @@ def getassets(tickers,
     
     return assets
 
+
 #### Returns
 
 def compound(s) -> pd.Series or pd.DataFrame:
@@ -73,8 +77,11 @@ def compound(s) -> pd.Series or pd.DataFrame:
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def compound_returns(s, 
-                     start: float = 1) -> pd.Series or pd.DataFrame:
+
+def compound_returns(
+        s, 
+        start: float = 1
+    ) -> pd.Series or pd.DataFrame:
     '''
     Compound a pd.Dataframe or pd.Series of returns from an inputi nitial start value.
     In the former case, the method compounds the returns for every column (Series) by using pd.aggregate. 
@@ -87,10 +94,13 @@ def compound_returns(s,
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def compute_returns(s, 
-                    mpor: int       = 1, 
-                    ascending: bool = True, 
-                    dropna: bool    = False) -> pd.Series or pd.DataFrame:
+
+def compute_returns(
+        s, 
+        mpor: int       = 1, 
+        ascending: bool = True, 
+        dropna: bool    = False
+    ) -> pd.Series or pd.DataFrame:
     '''
     Computes the arithmetic returns of a pd.Dataframe or pd.Series of prices 
     In the former case, it computes the returns for every column (Series) by using pd.aggregate.
@@ -110,11 +120,14 @@ def compute_returns(s,
             return r
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
-        
-def compute_logreturns(s, 
-                       mpor: int       = 1, 
-                       ascending: bool = True,
-                       dropna: bool    = False) -> pd.Series or pd.DataFrame:
+
+
+def compute_logreturns(
+        s, 
+        mpor: int       = 1, 
+        ascending: bool = True,
+        dropna: bool    = False
+    ) -> pd.Series or pd.DataFrame:
     '''
     Computes the log-returns returns of a pd.Dataframe or pd.Series of prices.
     In the former case, it computes the returns for every column (Series) by using pd.aggregate.
@@ -135,8 +148,11 @@ def compute_logreturns(s,
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def annualize_returns(s, 
-                      ppy: int) -> pd.Series or pd.DataFrame:
+
+def annualize_returns(
+        s, 
+        ppy: int
+    ) -> pd.Series or pd.DataFrame:
     '''
     Computes the annualized returns (returns-per-year) of a pd.Dataframe or pd.Series of returns.
     The variable ppy can be, for example
@@ -153,13 +169,16 @@ def annualize_returns(s,
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
+
 #### Downside Risk Measures
         
-def drawdown(s, 
-             rets: bool      = False, 
-             maxd: bool      = True,
-             percent: bool   = True, 
-             ascending: bool = True) -> pd.Series or pd.DataFrame:
+def drawdown(
+        s, 
+        rets: bool      = False, 
+        maxd: bool      = True,
+        percent: bool   = True, 
+        ascending: bool = True
+    ) -> pd.Series or pd.DataFrame:
     '''
     Computes the drawdown of a pd.Dataframe or pd.Series of prices.
     - rets = True, the input DataFrame/Series consists of returns (prices obtained by compounding)
@@ -191,12 +210,15 @@ def drawdown(s,
             return ddown
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
-        
-def drawup(s, 
-           rets: bool      = False, 
-           maxd: bool      = True,
-           percent: bool   = True, 
-           ascending: bool = True) -> pd.Series or pd.DataFrame:
+
+
+def drawup(
+        s, 
+        rets: bool      = False, 
+        maxd: bool      = True,
+        percent: bool   = True, 
+        ascending: bool = True
+    ) -> pd.Series or pd.DataFrame:
     '''
     Computes the drawup of a pd.Dataframe or pd.Series of prices.
     - rets = True, the input DataFrame/Series consists of returns (prices obtained by compounding)
@@ -229,11 +251,12 @@ def drawup(s,
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
+
 def semistd(
-    s, 
-    negative = True, 
-    ddof = 1
-    ):
+        s,
+        negative: bool  = True, 
+        ddof: int       = 1
+    )-> pd.Series or pd.DataFrame:
     '''
     Computes the semi-volatility of a pd.Dataframe or pd.Series of returns.
     - negative = True, return the semi-volatility of negative return
@@ -249,11 +272,12 @@ def semistd(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
+
 def annualize_std(
-    s, 
-    ppy, 
-    ddof = 1
-    ):
+        s, 
+        ppy: int, 
+        ddof: int = 1
+    ) -> pd.Series or float:
     '''
     Computes the annualized volatility (volatility-per-year) of a pd.Dataframe, pd.Series, or a single returns.
     The variable ppy can be, for example
@@ -269,15 +293,16 @@ def annualize_std(
     elif isinstance(s, list):
         return np.std(s, ddof=ddof)*(ppy)**(0.5)
     elif isinstance(s, (int,float)):
-        return s * (ppy)**(0.5)
+        return s*(ppy)**(0.5)
     else:
         raise TypeError("Expected pd.DataFrame, pd.Series, or int/float number")
 
+
 def var(
-    s, 
-    CL   = 99/100,
-    left = True,
-    ):
+        s, 
+        CL: float   = 99/100,
+        left: bool  = True
+    ) -> pd.Series or float:
     '''
     Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns.
     '''
@@ -291,17 +316,17 @@ def var(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
+
 def var_normal(
-    s, 
-    CL   = 99/100, 
-    cf   = False, 
-    ddof = 1,
-    left = True
-    ):
+        s, 
+        CL: float    = 99/100, 
+        cf: bool     = False, 
+        ddof: int    = 1,
+        left: bool   = True
+    ) -> pd.Series or float:
     '''
     Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns using the parametric Gaussian method.
     If cf = True, return the Cornish-Fisher cumulants quantile.
-    Link: https://www.value-at-risk.net/the-cornish-fisher-expansion/
     '''
     if isinstance(s, pd.DataFrame):
         return s.aggregate(var_normal, CL=CL, cf=cf, ddof=ddof, left=left)
@@ -318,12 +343,13 @@ def var_normal(
         return s.mean() + q * s.std(ddof=ddof)
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
-                             
+
+
 def es(
-    s,        
-    CL = 99/100,
-    left = True
-    ):
+        s,
+        CL: float  = 99/100,
+        left: bool = True
+    ) -> pd.Series or float:
     '''
     Computes the (1-CL)% Expected Shortfall of a pd.Dataframe or pd.Series of returns.
     Differently from the 'es' method, the corresponding confidence level scenario is found (no interpolation). 
@@ -338,8 +364,11 @@ def es(
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def qscenario(s, 
-              CL = 99/100):
+
+def qscenario(
+        s, 
+        CL: float = 99/100
+    ) -> pd.Series or float:
     '''
     Returns the scenarios of an input series of returns 
     corresponding to the (1-CL)% confidence level.
@@ -349,10 +378,12 @@ def qscenario(s,
     wscen = 1 if wscen < 1 else wscen
     return wscen
 
-def VaR(s, 
-        CL = 99/100,
-        left = True
-        ):
+
+def VaR(
+        s, 
+        CL: float = 99/100,
+        left: bool = True
+    ) -> pd.Series or float:
     '''
     Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns.
     Differently from the 'hvar' method, the corresponding confidence level scenario is found (no interpolation). 
@@ -367,10 +398,12 @@ def VaR(s,
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")      
         
-def ES(s, 
-       CL = 99/100,
-       left = True
-       ):
+
+def ES(
+        s, 
+        CL: float = 99/100,
+        left: bool = True
+    ) -> pd.Series or float:
     '''
     Computes the (1-CL)% Expected Shortfall of a pd.Dataframe or pd.Series of returns 
     '''
@@ -384,11 +417,13 @@ def ES(s,
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series") 
         
+
 def summary_stats(
-    s, 
-    CL     = 99/100, 
-    ppy    = 252, 
-    excess = False):
+        s,
+        CL: float     = 99/100, 
+        ppy: int      = 252, 
+        excess: bool  = False
+    ) -> pd.DataFrame:
     '''
     Returns a dataframe containing annualized returns, annualized volatility, sharpe ratio, 
     skewness, kurtosis, historic VaR, Cornish-Fisher VaR, and Max Drawdown
@@ -407,8 +442,7 @@ def summary_stats(
             "Minimum"             : s.min(),
             "Maximum"             : s.max()
         }
-        return pd.DataFrame(stats, index=[s.name]).T
-    
+        return pd.DataFrame(stats, index=[s.name]).T    
     elif isinstance(s, pd.DataFrame):     
         stats = {
             "(Ann.) Return"       : s.aggregate(annualize_returns, ppy=ppy),
@@ -424,11 +458,13 @@ def summary_stats(
             "Maximum"             : s.aggregate(np.max)
         } 
         return pd.DataFrame(stats).T
-    
+    else:
+        raise TypeError("Expected pd.DataFrame or pd.Series")      
 
+    
 #### Distributions 
 
-def skewness(s):
+def skewness(s) -> pd.Series or pd.DataFrame:
     '''
     Computes the Skewness of a pd.Dataframe or pd.Series of returns.
     '''
@@ -440,8 +476,11 @@ def skewness(s):
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def kurtosis(s, 
-             excess = False):
+
+def kurtosis(
+        s, 
+        excess: bool = False
+    ) -> pd.Series or float:
     '''
     Computes the Kurtosis of a pd.Dataframe or pd.Series of returns.
     If excess" is True, returns the "Excess Kurtosis", i.e., Kurtosis minus 3
@@ -458,8 +497,11 @@ def kurtosis(s,
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
-def is_normal(s,
-              siglev = 0.05):
+
+def is_normal(
+        s,
+        siglev: float = 0.05
+    ) -> pd.Series or bool:
     '''
     Computes the Jarque-Bera test of a pd.Dataframe or pd.Series of returns.
     To see if a series (of returns) is normally distributed.
@@ -473,13 +515,21 @@ def is_normal(s,
         return pvalue > siglev
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
-                
+    
+
+def Gamma(x) -> float:
+    '''
+    Returns the Gamma function (from math)
+    '''
+    return gamma(x) if x != 0 else 1
+
+
 def dist_normal(
-    x, 
-    mu  = 0, 
-    std = 1,
-    cum = False
-    ):
+        x, 
+        mu: float   = 0, 
+        std: float  = 1,
+        cum: bool   = False
+    ) -> float:
     '''
     Normal (or Gaussian) distribution:
     - cum   : False for evaluating the PDF at input point x
@@ -491,13 +541,14 @@ def dist_normal(
     else:
         return stats.norm.pdf(x, loc=mu, scale=std)
 
+
 def gen_pdf_normal(
-    a   = -5, 
-    b   = 5, 
-    mu  = 0, 
-    std = 1, 
-    dx  = 0.01,
-    ):
+        a: float   = -5, 
+        b: float   = 5, 
+        mu: float  = 0, 
+        std: float = 1, 
+        dx: float  = 0.01
+    ) -> pd.Series:
     '''
     Generation of the Normal (or Gaussian) Distribution PDF with mean 'mu' and 
     variance 'std', within the range (a,b).
@@ -509,13 +560,14 @@ def gen_pdf_normal(
     pdf.name = "Normal"
     return pdf
 
+
 def gen_cdf_normal(
-    a   = -5, 
-    b   = 5, 
-    mu  = 0, 
-    std = 1, 
-    dx  = 0.01,
-    ):
+        a: float   = -5, 
+        b: float   = 5, 
+        mu: float  = 0, 
+        std: float = 1, 
+        dx: float  = 0.01
+    ) -> pd.Series:
     '''
     Generation of the Normal (or Gaussian) Distribution CDF with mean 'mu' and 
     variance 'std', within the range (a,b).
@@ -527,31 +579,27 @@ def gen_cdf_normal(
     cdf.name = "Normal"
     return cdf
 
+
 def gen_rvs_normal(
-    mu   = 0,
-    std  = 1,
-    size = 1000
-    ):
+        mu: float    = 0,
+        std: float   = 1, 
+        size: int    = 1000
+    ) -> pd.Series:
     '''
     Returns a pd.Series of random variables normally distributed.
     Using scipy.stats.
     '''
     return pd.Series(stats.norm.rvs(loc=mu, scale=std, size=size))
 
-def Gamma(x):
-    '''
-    Returns the Gamma function (from math)
-    '''
-    return gamma(x) if x != 0 else 1
 
 def dist_tstudent(
-    x, 
-    df    = 3,
-    mu    = 0,
-    scale = 1, 
-    stdz  = False,
-    cum   = False 
-    ):
+        x, 
+        df: float     = 3,
+        mu: float     = 0,
+        scale: float  = 1, 
+        stdz: bool    = False,
+        cum : bool    = False
+    ) -> float:
     '''
     t-Student Distribution.
     Note that t-Student distribution variance exists for df > 2.
@@ -559,6 +607,8 @@ def dist_tstudent(
               It has mean = mu and variance = 1, if df>2
             : False for evaluating the "non-Standardized" (or "Standard") t-Student 
               It has mean = mu and variance = scale**2 * df/(df-2), if df>2
+    - cum   : True for evaluating the CDF at input point x
+            : False for evaluating the PDF at input point x
     '''
     if cum:
         if stdz:
@@ -571,15 +621,16 @@ def dist_tstudent(
         else:
             return stats.t.pdf(x, df=df, loc=mu, scale=scale) 
 
+
 def gen_pdf_tstudent(
-    a     = -5, 
-    b     = 5, 
-    df    = 3,
-    mu    = 0, 
-    scale = 1, 
-    stdz  = False, 
-    dx    = 0.01,
-    ):
+        a: float       = -5, 
+        b: float       = 5, 
+        df: float      = 3,
+        mu: float      = 0, 
+        scale: float   = 1, 
+        stdz: bool     = False, 
+        dx: float      = 0.01
+    ) -> pd.Series:
     '''
     Generation of the t-Student Distribution PDF within the range(a,b).
     Note that t-Student distribution variance exists for df > 2.
@@ -597,15 +648,16 @@ def gen_pdf_tstudent(
         pdf.name = "Non-Standardized t"
     return pdf
 
+
 def gen_cdf_tstudent(
-    a     = -5, 
-    b     = 5, 
-    df    = 3,
-    mu    = 0, 
-    scale = 1, 
-    stdz  = False, 
-    dx    = 0.01,
-    ):
+        a: float       = -5, 
+        b: float       = 5, 
+        df: float      = 3,
+        mu: float      = 0, 
+        scale: float   = 1, 
+        stdz: bool     = False, 
+        dx: float      = 0.01
+    ) -> pd.Series:
     '''
     Generation of the t-Student Distribution CDF within the range(a,b).
     Note that t-Student distribution variance exists for df > 2.
@@ -623,13 +675,14 @@ def gen_cdf_tstudent(
         cdf.name = "Non-Standardized t"
     return cdf
 
+
 def gen_rvs_tstudent(
-    df    = 3, 
-    mu    = 0,
-    scale = 1,
-    size  = 1000,
-    stdz  = False,
-    ):
+        df: float       = 3, 
+        mu: float       = 0,
+        scale: float    = 1,
+        size: int       = 1000,
+        stdz: bool      = False
+    ) -> pd.Series:
     '''
     Returns a pd.Series of random variables t-Student distributed.
     t-Student distribution variance exists for df > 2.
@@ -643,7 +696,12 @@ def gen_rvs_tstudent(
     else:
         return pd.Series(stats.t.rvs(df=df, loc=mu, scale=scale, size=size))
 
-def some_pdf(x, mu, std): 
+
+def some_pdf(
+        x: float, 
+        mu: float, 
+        std: float
+    ) -> float:
     '''
     Returns a user-defined pdf for (general) generation of random variables.
     To be used with "gen_rvs_from_pdf" method.
@@ -652,13 +710,14 @@ def some_pdf(x, mu, std):
     pdf = 1/np.sqrt(2*np.pi*std**2)*np.exp(-0.5*((x - mu)/std)**2)
     return pdf
 
+
 def gen_rvs_from_pdf(
-    pdf, 
-    size   = 1000,
-    iguess = 0.0,
-    tol    = 1e-3, 
-    **kwargs
-    ):   
+        pdf, 
+        size: int       = 1000,
+        iguess: float   = 0.0,
+        tol: float      = 1e-3, 
+        **kwargs
+    ) -> pd.Series:
     '''
     Generates random variables distributed according to the input (user-defined) pdf function.
     Input "pdf" should be a function and "kwargs" would be extra pdf input parameters.
@@ -688,11 +747,14 @@ def gen_rvs_from_pdf(
         rvs.append(result.x[0])
     return pd.Series(rvs)
 
-def distfit(s, 
-            dtype: str  = "t",
-            pdf: bool   = False,
-            mm: float   = 0,
-            dx: float   = 0.05) -> dict:
+
+def distfit(
+        s, 
+        dtype: str  = "t",
+        pdf: bool   = False,
+        mm: float   = 0,
+        dx: float   = 0.05
+    ) -> dict:
     '''
     Best-Fit distribution approximation using Maximum-Likelihood-Estimation via scipy.stats. 
     Returns a dictionary with distribution parameters, e.g., mean and standard location.
@@ -751,16 +813,18 @@ def empirical_cdf(s) -> pd.Series:
     return F_emp
 
 
-def hypothetical_cdf(s, 
-                    #  dist: dict, 
-                     dtype: str = "t") -> pd.Series:
-    
+def hypothetical_cdf(
+        s, 
+        dtype: str = "t"
+    ) -> pd.Series:
+    '''
+    Returns the 'hypothetical' CDF of a input return series.
+    '''
     dist = distfit(s, dtype=dtype, pdf=False)
-
     if dtype == "n":
         cdf = stats.norm.cdf(s, loc=dist["mu"], scale=dist["std"])
         name = "Fitted Normal CDF"
-    
+
     if dtype == "t":
         cdf = stats.t.cdf(s, df=dist["df"], loc=dist["mu"], scale=dist["scale"])  
         name = "Fitted t-Student CDF"
@@ -771,9 +835,9 @@ def hypothetical_cdf(s,
 #### Covariances and Correlations
 
 def sample_cov(
-    r, 
-    ddof = 1
-    ):
+        r, 
+        ddof: int = 1
+    ) -> pd.DataFrame or float:
     '''
     Returns the sample covariance matrix (n-by-n) of a pd.DataFrame of n times series returns 
     '''
@@ -785,7 +849,7 @@ def sample_cov(
         raise ValueError("Expected df to be a pd.Series or pd.DataFrame of returns")
 
 
-def cc_cov(r):
+def cc_cov(r) -> pd.DataFrame:
     '''
     Returns a covariance matrix using the Elton/Gruber Constant Correlation model
     '''
@@ -803,7 +867,10 @@ def cc_cov(r):
     return pd.DataFrame(ccov, index=r.columns, columns=r.columns)
 
 
-def shrinkage_cov(r, delta=0.5):
+def shrinkage_cov(
+        r, 
+        delta: float = 0.5
+    ) -> pd.DataFrame:
     '''
     Returns a convariance matrix computed via Statistical Shrinkage method
     which 'shrinks' between the constant correlation and standard sample covariance estimators 
