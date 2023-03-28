@@ -834,7 +834,7 @@ def hypothetical_cdf(
 
 #### Covariances and Correlations
 
-def sample_cov(
+def covmat(
         r, 
         ddof: int = 1
     ) -> pd.DataFrame or float:
@@ -846,33 +846,53 @@ def sample_cov(
     elif isinstance(r, pd.DataFrame):
         return r.cov(ddof=ddof)
     else:
-        raise ValueError("Expected df to be a pd.Series or pd.DataFrame of returns")
+        raise ValueError("Expected 'r' to be a pd.Series or pd.DataFrame of returns")
 
 
-def cc_cov(r) -> pd.DataFrame:
+def covmat_cc(r,         
+              ddof: int = 1
+    ) -> pd.DataFrame:
     '''
     Returns a covariance matrix using the Elton/Gruber Constant Correlation model
     '''
-    # Correlation matrix  
-    rhos = r.corr()
-    # Mean Correlation: since the matrix rhos is a symmetric with diagonals all 1,
-    # the mean correlation can be computed by:
-    mean_rho = (rhos.values.sum() - rhos.shape[0]) / (rhos.shape[0]**2 - rhos.shape[0]) 
-    # Constant correlation matrix containing 1 on the diagonal and the mean correlation outside
-    ccor = np.full_like(rhos, mean_rho)
-    np.fill_diagonal(ccor, 1.0)
-    # New covariance matrix by multiplying mean_rho * std_i**2, 
-    # the product of the stds is done via np.outer
-    ccov = ccor * np.outer(r.std(), r.std())
-    return pd.DataFrame(ccov, index=r.columns, columns=r.columns)
+    if isinstance(r, pd.Series):
+        return r.std(ddof=ddof)**2
+    elif isinstance(r, pd.DataFrame):
+        if r.shape[1] == 1:
+            return r.std(ddof=ddof)**2
+        else:
+            # Correlation matrix  
+            rhos = r.corr()
+        
+            # Mean Correlation: since the matrix rhos is a symmetric with diagonals all 1,
+            # the mean correlation can be computed by:
+            mean_rho = (rhos.values.sum() - rhos.shape[0]) / (rhos.shape[0]**2 - rhos.shape[0]) 
+        
+            # Constant correlation matrix containing 1 on the diagonal and the mean correlation outside
+            ccor = np.full_like(rhos, mean_rho)
+            np.fill_diagonal(ccor, 1.0)
+        
+            # New covariance matrix by multiplying mean_rho * std_i**2: 
+            ccov = ccor * np.outer(r.std(), r.std())
+        
+            return pd.DataFrame(ccov, index=r.columns, columns=r.columns)
+    else:
+        raise ValueError("Expected 'r' to be a pd.Series or pd.DataFrame of returns")
 
 
-def shrinkage_cov(
+def covmat_shrinkage(
         r, 
-        delta: float = 0.5
+        delta: float = 0.5,
+        ddof: int    = 1
     ) -> pd.DataFrame:
     '''
     Returns a convariance matrix computed via Statistical Shrinkage method
     which 'shrinks' between the constant correlation and standard sample covariance estimators 
     '''
-    return delta*cc_cov(r) + (1-delta)*sample_cov(r)
+    if isinstance(r, pd.Series):
+        return r.std(ddof=ddof)**2
+    elif isinstance(r, pd.DataFrame):
+        if r.shape[1] == 1:
+            return r.std(ddof=ddof)**2
+        else:
+            return delta * covmat_cc(r) + (1-delta) * covmat(r)
