@@ -832,6 +832,85 @@ def hypothetical_cdf(
     return pd.Series(np.sort(cdf), index=np.sort(s), name=name)
 
 
+
+
+
+def mc_test_stats(
+        fh, 
+        size: int    = 1000, 
+        mcs: int     = 1000,
+        dtype: str   = "t"
+    ) -> dict:
+    '''
+    '''
+    
+    KS = []
+    AD = []
+    
+    for k in range(mcs):
+        
+        if dtype == "t":
+            # STEP 1, 2, and 3: simulate a new sample given the t-Student fg distribution
+            u = np.random.random(size=size)
+            sample = pd.Series(stats.t(df=fh["df"], loc=fh["mu"], scale=fh["scale"]).ppf(u))
+            
+            # STEP 4: fit the new sample via MLE
+            df, mu, std = stats.t.fit(sample)
+            fh_hat = pd.Series(np.sort(stats.t.cdf(sample, df=df, loc=mu, scale=std)), 
+                               index=np.sort(sample))
+        
+        elif dtype == "n":
+            # STEP 1, 2, and 3: simulate a new sample given the t-Student F_H distribution
+            u = np.random.random(size=size)
+            sample = pd.Series(stats.norm(loc=fh["mu"], scale=fh["std"]).ppf(u))
+
+            # STEP 4: fit the new sample via MLE
+            mu, std = stats.norm.fit(sample)
+            fh_hat = pd.Series(np.sort( stats.norm.cdf(sample, loc=mu, scale=std)), 
+                               index=np.sort(sample))
+            
+        # STEP 5: computing the ECDF of the sample
+        # fe_hat = ECDF(sample) 
+        # fe_hat = pd.Series(fe_hat.y, index=fe_hat.x)
+        # fe_hat = fe_hat.drop(index=fe_hat.index[0])
+        fe_hat = empirical_cdf(sample)
+
+        # STEP 6: computing the test statistic (KS and AD) 
+        # KS.append( max( abs(fe_hat - fh_hat) ) )
+        # AD.append( max( abs(fe_hat - fh_hat).divide(np.sqrt(fh_hat.multiply(1 - fh_hat))) ) )
+        KS.append( hypothesis_test(fe_hat, fh_hat, test="KS") )
+        AD.append( hypothesis_test(fe_hat, fh_hat, test="AD") )
+
+        # STEP 7: the loop is repeated "mcsamples" times
+
+    Test = {"KS": pd.Series(KS),
+            "AD": pd.Series(AD)}
+    
+    return Test
+
+
+
+
+
+def hypothesis_test(
+        fe: pd.Series, 
+        fh: pd.Series, 
+        test: str = "KS"
+    ) -> float:
+    '''
+    '''
+    if test == "KS":
+        return max(abs( fe - fh ) ) 
+    elif test == "AD":
+        return max(abs( fe - fh ).divide( np.sqrt(fh.multiply(1 - fh)) ) )
+
+def pvalues(
+        teststat: pd.Series, 
+        critval: float
+    ):
+    return ECDF(teststat)(critval)
+
+
 #### Covariances and Correlations
 
 def covmat(
