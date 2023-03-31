@@ -834,8 +834,7 @@ def hypothetical_cdf(
 
 
 
-
-def mc_test_stats(
+def critical_val_dist(
         fh, 
         size: int    = 1000, 
         mcs: int     = 1000,
@@ -878,8 +877,8 @@ def mc_test_stats(
         # STEP 6: computing the test statistic (KS and AD) 
         # KS.append( max( abs(fe_hat - fh_hat) ) )
         # AD.append( max( abs(fe_hat - fh_hat).divide(np.sqrt(fh_hat.multiply(1 - fh_hat))) ) )
-        KS.append( hypothesis_test(fe_hat, fh_hat, test="KS") )
-        AD.append( hypothesis_test(fe_hat, fh_hat, test="AD") )
+        KS.append( hypo_testing(fe_hat, fh_hat, test="KS") )
+        AD.append( hypo_testing(fe_hat, fh_hat, test="AD") )
 
         # STEP 7: the loop is repeated "mcsamples" times
 
@@ -892,7 +891,7 @@ def mc_test_stats(
 
 
 
-def hypothesis_test(
+def hypo_testing(
         fe: pd.Series, 
         fh: pd.Series, 
         test: str = "KS"
@@ -900,9 +899,9 @@ def hypothesis_test(
     '''
     '''
     if test == "KS":
-        return max(abs( fe - fh ) ) 
+        return max( abs( fe - fh ) ) 
     elif test == "AD":
-        return max(abs( fe - fh ).divide( np.sqrt(fh.multiply(1 - fh)) ) )
+        return max( abs( fe - fh ).divide( np.sqrt(fh.multiply(1 - fh)) ) )
 
 def pvalues(
         teststat: pd.Series, 
