@@ -748,7 +748,7 @@ def gen_rvs_from_pdf(
     return pd.Series(rvs)
 
 
-def distfit(
+def dist_fit(
         s, 
         dtype: str  = "t",
         pdf: bool   = False,
@@ -800,9 +800,48 @@ def distfit(
         
     else:
         raise ValueError("Enter valid distribution value")
+
+
+def dist_eval(
+        x: float, 
+        dist: dict, 
+        dtype: str = "n", 
+        cum: bool  = False
+    ) -> float:
+    '''
+    '''
+    if dtype == "n":
+        return dist_normal(x, mu=dist["mu"], std=dist["std"], cum=cum)
+    elif dtype == "t":
+        return dist_tstudent(x, df=dist["df"], mu=dist["mu"], scale=dist["scale"], cum=cum)
     
 
-def empirical_cdf(s) -> pd.Series:
+def dist_ppf(
+        u: float, 
+        dist: dict, 
+        dtype: str = "n"
+    ) -> float:
+    '''
+    '''
+    if dtype == "n":
+        return stats.norm(loc=dist["mu"], scale=dist["std"]).ppf(u) 
+    elif dtype == "t":
+        return stats.t(df=dist["df"], loc=dist["mu"], scale=dist["scale"]).ppf(u)
+
+
+# def empirical_cdf(s) -> pd.Series:
+#     '''
+#     Returns the Empirical Cumulative Distribution Function (ECDF)
+#     of an input return series
+#     '''
+#     F_ecdf = ECDF(s)    
+#     F_emp = pd.Series(F_ecdf.y, index=F_ecdf.x, name="ECDF")
+#     F_emp = F_emp.drop(index=F_emp.index[0])
+#     return F_emp
+def empirical_cdf(
+        s, 
+        index: str = True
+    ) -> pd.Series:
     '''
     Returns the Empirical Cumulative Distribution Function (ECDF)
     of an input return series
@@ -810,7 +849,10 @@ def empirical_cdf(s) -> pd.Series:
     F_ecdf = ECDF(s)    
     F_emp = pd.Series(F_ecdf.y, index=F_ecdf.x, name="ECDF")
     F_emp = F_emp.drop(index=F_emp.index[0])
-    return F_emp
+    if index:
+        return F_emp
+    else:
+        return F_emp.reset_index(drop=True)
 
 
 def hypothetical_cdf(
@@ -820,7 +862,7 @@ def hypothetical_cdf(
     '''
     Returns the 'hypothetical' CDF of a input return series.
     '''
-    dist = distfit(s, dtype=dtype, pdf=False)
+    dist = dist_fit(s, dtype=dtype, pdf=False)
     if dtype == "n":
         cdf = stats.norm.cdf(s, loc=dist["mu"], scale=dist["std"])
         name = "Fitted Normal CDF"
@@ -834,64 +876,107 @@ def hypothetical_cdf(
 
 
 
-def critical_val_dist(
-        fh, 
-        size: int    = 1000, 
-        mcs: int     = 1000,
-        dtype: str   = "t"
-    ) -> dict:
+def test_stats_crit_values_naive(
+        Fh, 
+        dtype: str = "t",
+        size: int  = 1250, 
+        mcs: int   = 1000,
+        htest: str = "KS", 
+    ) -> pd.Series:
     '''
     '''
-    
-    KS = []
-    AD = []
-    
+    test_stats_dist = []
     for k in range(mcs):
         
         if dtype == "t":
-            # STEP 1, 2, and 3: simulate a new sample given the t-Student fg distribution
+            # STEP 1, 2, and 3: simulate a new sample given the t-Student F_H distribution
             u = np.random.random(size=size)
-            sample = pd.Series(stats.t(df=fh["df"], loc=fh["mu"], scale=fh["scale"]).ppf(u))
+            sample = pd.Series(stats.t(df=Fh["df"], loc=Fh["mu"], scale=Fh["scale"]).ppf(u))
             
             # STEP 4: fit the new sample via MLE
             df, mu, std = stats.t.fit(sample)
-            fh_hat = pd.Series(np.sort(stats.t.cdf(sample, df=df, loc=mu, scale=std)), 
+            Fh_hat = pd.Series(np.sort(stats.t.cdf(sample, df=df, loc=mu, scale=std)), 
                                index=np.sort(sample))
         
         elif dtype == "n":
-            # STEP 1, 2, and 3: simulate a new sample given the t-Student F_H distribution
+            # STEP 1, 2, and 3: simulate a new sample given the normal F_H distribution
             u = np.random.random(size=size)
-            sample = pd.Series(stats.norm(loc=fh["mu"], scale=fh["std"]).ppf(u))
+            sample = pd.Series(stats.norm(loc=Fh["mu"], scale=Fh["std"]).ppf(u))
 
             # STEP 4: fit the new sample via MLE
             mu, std = stats.norm.fit(sample)
-            fh_hat = pd.Series(np.sort( stats.norm.cdf(sample, loc=mu, scale=std)), 
+            Fh_hat = pd.Series(np.sort(stats.norm.cdf(sample, loc=mu, scale=std)), 
                                index=np.sort(sample))
             
         # STEP 5: computing the ECDF of the sample
-        # fe_hat = ECDF(sample) 
-        # fe_hat = pd.Series(fe_hat.y, index=fe_hat.x)
-        # fe_hat = fe_hat.drop(index=fe_hat.index[0])
-        fe_hat = empirical_cdf(sample)
+        Fe_hat = empirical_cdf(sample)
 
-        # STEP 6: computing the test statistic (KS and AD) 
-        # KS.append( max( abs(fe_hat - fh_hat) ) )
-        # AD.append( max( abs(fe_hat - fh_hat).divide(np.sqrt(fh_hat.multiply(1 - fh_hat))) ) )
-        KS.append( hypo_testing(fe_hat, fh_hat, test="KS") )
-        AD.append( hypo_testing(fe_hat, fh_hat, test="AD") )
+        # STEP 6: computing the test statistic distribution 
+        test_stats_dist.append( test_statistics(Fe_hat, Fh_hat, test=htest) )
 
-        # STEP 7: the loop is repeated "mcsamples" times
+    return pd.Series(test_stats_dist)
 
-    Test = {"KS": pd.Series(KS),
-            "AD": pd.Series(AD)}
+
+def test_stats_crit_values(
+        Fh, 
+        dtype: str     = "n",
+        size: int      = 1250, 
+        mcs: int       = 1000,
+        htest          = "KS", 
+        parallel: bool = True,
+        verbose: int   = 0
+    ) -> pd.Series:
+    '''
+    '''
+    if parallel:
+        try:
+            from pandarallel import pandarallel
+            pandarallel.initialize(progress_bar=False, verbose=verbose)
+        except: 
+            parallel = False
     
-    return Test
+    # Generate new samples form the hypothetical F_h
+    u = np.random.random(size=(size,mcs))
+    samples = dist_ppf(u, Fh, dtype=dtype)
+    
+    if parallel:
+        # Compute the ECDF of calculated samples
+        Fe_hat = pd.DataFrame(samples).parallel_apply(empirical_cdf, index=False)
+    
+        # Fit the new samples via MLE using the input hypothetical F_h
+        # That is, computes the parameters of the distributions fitted (would be as F_h)
+        dists  = pd.DataFrame(samples).parallel_apply(dist_fit, dtype=dtype, pdf=False)
+    
+        # Compute the corresponding CDF (Fh_hat) given the fitted distributions (not sorted)    
+        Fh_hat = pd.DataFrame(samples).parallel_apply(lambda x: dist_eval(x, dists[x.name], dtype=dtype, cum=True), axis=0)
+        
+    else:
+        Fe_hat = pd.DataFrame(samples).apply(empirical_cdf, index=False)
+        dists  = pd.DataFrame(samples).apply(dist_fit, dtype=dtype, pdf=False)        
+        Fh_hat = pd.DataFrame(samples).apply(lambda x: dist_eval(x, dists[x.name], dtype=dtype, cum=True), axis=0)
+        
+    # Sort Fh_hat
+    Fh_hat = pd.DataFrame(np.sort(Fh_hat.values, axis=0), index=Fh_hat.index, columns=Fh_hat.columns)
+    
+    # Calculate the test statistics distribution
+    test_stats_dist = pd.Series([test_statistics(Fe_hat[k], Fh_hat[k], test=htest) for k in range(mcs)])
+       
+    return test_stats_dist
 
 
 
 
 
-def hypo_testing(
+
+
+
+
+
+
+
+
+
+def test_statistics(
         fe: pd.Series, 
         fh: pd.Series, 
         test: str = "KS"
