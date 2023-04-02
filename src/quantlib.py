@@ -524,6 +524,21 @@ def Gamma(x) -> float:
     return gamma(x) if x != 0 else 1
 
 
+def dist_eval(
+        x: float, 
+        dist: dict, 
+        dtype: str = "n", 
+        cum: bool  = False
+    ) -> float:
+    '''
+    Evaluation of the PDF or CDF of an input 'dist' distribution
+    '''
+    if dtype == "n":
+        return dist_normal(x, mu=dist["mu"], std=dist["std"], cum=cum)
+    elif dtype == "t":
+        return dist_tstudent(x, df=dist["df"], mu=dist["mu"], scale=dist["scale"], cum=cum)
+    
+
 def dist_normal(
         x, 
         mu: float   = 0, 
@@ -802,26 +817,13 @@ def dist_fit(
         raise ValueError("Enter valid distribution value")
 
 
-def dist_eval(
-        x: float, 
-        dist: dict, 
-        dtype: str = "n", 
-        cum: bool  = False
-    ) -> float:
-    '''
-    '''
-    if dtype == "n":
-        return dist_normal(x, mu=dist["mu"], std=dist["std"], cum=cum)
-    elif dtype == "t":
-        return dist_tstudent(x, df=dist["df"], mu=dist["mu"], scale=dist["scale"], cum=cum)
-    
-
 def dist_ppf(
         u: float, 
         dist: dict, 
         dtype: str = "n"
     ) -> float:
     '''
+    Returns the 'u' percentile (or quantile) of the input 'dist' distribution
     '''
     if dtype == "n":
         return stats.norm(loc=dist["mu"], scale=dist["std"]).ppf(u) 
@@ -829,15 +831,6 @@ def dist_ppf(
         return stats.t(df=dist["df"], loc=dist["mu"], scale=dist["scale"]).ppf(u)
 
 
-# def empirical_cdf(s) -> pd.Series:
-#     '''
-#     Returns the Empirical Cumulative Distribution Function (ECDF)
-#     of an input return series
-#     '''
-#     F_ecdf = ECDF(s)    
-#     F_emp = pd.Series(F_ecdf.y, index=F_ecdf.x, name="ECDF")
-#     F_emp = F_emp.drop(index=F_emp.index[0])
-#     return F_emp
 def empirical_cdf(
         s, 
         index: str = True
@@ -860,7 +853,8 @@ def hypothetical_cdf(
         dtype: str = "t"
     ) -> pd.Series:
     '''
-    Returns the 'hypothetical' CDF of a input return series.
+    Returns the 'hypothetical' CDF of a input return series
+    by fitting the series via the Maximum Likelihood Estimation (MLE) 
     '''
     dist = dist_fit(s, dtype=dtype, pdf=False)
     if dtype == "n":
@@ -874,11 +868,9 @@ def hypothetical_cdf(
     return pd.Series(np.sort(cdf), index=np.sort(s), name=name)
 
 
-
-
-def test_stats_crit_values_naive(
+def dist_test_stats_naive(
         Fh, 
-        dtype: str = "t",
+        dtype: str = "n",
         size: int  = 1250, 
         mcs: int   = 1000,
         htest: str = "KS", 
@@ -912,20 +904,20 @@ def test_stats_crit_values_naive(
         Fe_hat = empirical_cdf(sample)
 
         # STEP 6: computing the test statistic distribution 
-        test_stats_dist.append( test_statistics(Fe_hat, Fh_hat, test=htest) )
+        test_stats_dist.append(test_statistics(Fe_hat, Fh_hat, test=htest))
 
     return pd.Series(test_stats_dist)
 
 
-def test_stats_crit_values(
+def dist_test_stats(
         Fh, 
         dtype: str     = "n",
         size: int      = 1250, 
         mcs: int       = 1000,
-        htest          = "KS", 
+        htest: list    = ["KS"], 
         parallel: bool = True,
         verbose: int   = 0
-    ) -> pd.Series:
+    ) -> dict:
     '''
     '''
     if parallel:
@@ -959,21 +951,11 @@ def test_stats_crit_values(
     Fh_hat = pd.DataFrame(np.sort(Fh_hat.values, axis=0), index=Fh_hat.index, columns=Fh_hat.columns)
     
     # Calculate the test statistics distribution
-    test_stats_dist = pd.Series([test_statistics(Fe_hat[k], Fh_hat[k], test=htest) for k in range(mcs)])
+    test_stats = dict()
+    for ht in htest:
+        test_stats[ht] = pd.Series([test_statistics(Fe_hat[k], Fh_hat[k], test=ht) for k in range(mcs)])
        
-    return test_stats_dist
-
-
-
-
-
-
-
-
-
-
-
-
+    return test_stats
 
 
 def test_statistics(
@@ -988,11 +970,25 @@ def test_statistics(
     elif test == "AD":
         return max( abs( fe - fh ).divide( np.sqrt(fh.multiply(1 - fh)) ) )
 
+
+def critical_region(
+        tstat, 
+        htest: str    = "KS", 
+        slevel: float = 5
+    ) -> dict:
+    '''
+    '''
+    CR = dict()
+    CR = {f"{htest}": {"left":  tstat.quantile(q=slevel/100), 
+                       "right": tstat.quantile(q=1 - slevel/100)}}
+    return CR
+
+
 def pvalues(
         teststat: pd.Series, 
-        critval: float
+        cval: float
     ):
-    return ECDF(teststat)(critval)
+    return ECDF(teststat)(cval)
 
 
 #### Covariances and Correlations
