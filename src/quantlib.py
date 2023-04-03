@@ -979,8 +979,8 @@ def critical_region(
     '''
     '''
     CR = dict()
-    CR = {f"{htest}": {"left":  tstat.quantile(q=slevel/100), 
-                       "right": tstat.quantile(q=1 - slevel/100)}}
+    CR = {f"{htest}": {"left":  tstat.quantile(q=slevel/2/100), 
+                       "right": tstat.quantile(q=1 - slevel/2/100)}}
     return CR
 
 
