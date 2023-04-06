@@ -875,6 +875,9 @@ def dist_test_stats_naive(
         htest: str = "KS", 
     ) -> pd.Series:
     '''
+    Monte Carlo simulation of an input test statistic distribution 
+    for an hypothesized distribution Fh of a sample data.
+    Naive implementation via for loop.
     '''
     test_stats_dist = []
     for k in range(mcs):
@@ -918,6 +921,10 @@ def dist_test_stats(
         verbose: int   = 0
     ) -> dict:
     '''
+    Monte Carlo simulation of an input test statistic distribution 
+    for an hypothesized distribution Fh of a sample data.
+    Implementation via multi-thread ".parallel_apply" method from "pandarallel".
+    If not installed, uses ".apply" method (uses only one core).
     '''
     if parallel:
         try:
@@ -963,6 +970,11 @@ def test_statistics(
         test: str = "KS"
     ) -> float:
     '''
+    Returns a Test Statistic, used for the testing the hypothesis of 
+    an input empirical CDF of the sample data, Fe, being one 
+    hypothesized distribution, Fh.
+    Currently implements the "Kolmogorov-Smirnoff" and the 
+    "Anderson-Darling" test statistics.  
     '''
     if test == "KS":
         return max( abs( fe - fh ) ) 
@@ -976,6 +988,8 @@ def critical_region(
         slevel: float = 5
     ) -> dict:
     '''
+    Given a certain test statistics distribution, returns the 
+    "critical region" of the distributino for a certain significance level
     '''
     CR = dict()
     CR = {f"{htest}": {"left":  tstat.quantile(q=slevel/2/100), 
@@ -986,7 +1000,11 @@ def critical_region(
 def pvalues(
         teststat: pd.Series, 
         cval: float
-    ):
+    ) -> float:
+    '''
+    Returns the p-value (probability) of a an event of a 
+    ocurring under a certain distribution 
+    '''
     return ECDF(teststat)(cval)
 
 
