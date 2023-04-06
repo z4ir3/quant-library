@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import yfinance as yf
-import matplotlib.pyplot as plt
 # import seaborn as sns
 # import statsmodels.api as sm
 from statsmodels.distributions.empirical_distribution import ECDF 
