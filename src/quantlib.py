@@ -459,8 +459,10 @@ def ES(
 def summary_stats(
         s,
         CL: float     = 99/100, 
+        left: bool    = True,
         ppy: int      = 252, 
-        excess: bool  = False
+        excess: bool  = False,
+        **kwargs
     ) -> pd.DataFrame:
     '''
     Returns a dataframe containing annualized returns, annualized volatility, sharpe ratio, 
@@ -468,32 +470,34 @@ def summary_stats(
     '''
     if isinstance(s, pd.Series):
         stats = {
-            "(Ann.) Return"       : annualize_returns(s, ppy=ppy),
-            "(Ann.) Std"          : annualize_std(s, ppy=ppy),
-            "Skewness"            : skewness(s),
-            "Kurtosis"            : kurtosis(s, excess=excess),
-            f"VaR {CL}"           : var(s, CL=CL),
-            f"Normal VaR {CL}"    : var_normal(s, CL=CL, cf=False),
-            f"Normal CF VaR {CL}" : var_normal(s, CL=CL, cf=True),
-            f"ES {CL}"            : es(s, CL=CL),
-            "Max Drawdown"        : drawdown(s, rets=True, maxd=True, percent=True),
-            "Minimum"             : s.min(),
-            "Maximum"             : s.max()
+            "(Ann.) Return"        : annualize_returns(s, ppy=ppy),
+            "(Ann.) Std"           : annualize_std(s, ppy=ppy),
+            "Skewness"             : skewness(s),
+            "Kurtosis"             : kurtosis(s, excess=excess),
+            f"VaR {CL}"            : var(s, CL=CL, left=left),
+            f"Normal VaR {CL}"     : var_normal(s, CL=CL, left=left, cf=False),
+            f"Normal CF VaR {CL}"  : var_normal(s, CL=CL, left=left, cf=True),
+            f"Normal tStudent {CL}": var_tstudent(s, CL=CL, left=left, **kwargs),
+            f"ES {CL}"             : es(s, CL=CL, left=left),
+            "Max Drawdown"         : drawdown(s, rets=True, maxd=True, percent=True),
+            "Minimum"              : s.min(),
+            "Maximum"              : s.max()
         }
         return pd.DataFrame(stats, index=[s.name]).T    
     elif isinstance(s, pd.DataFrame):     
         stats = {
-            "(Ann.) Return"       : s.aggregate(annualize_returns, ppy=ppy),
-            "(Ann.) Std"          : s.aggregate(annualize_std, ppy=ppy),
-            "Skewness"            : s.aggregate(skewness),
-            "Kurtosis"            : s.aggregate(kurtosis, excess=excess),
-            f"VaR {CL}"           : s.aggregate(var, CL=CL),
-            f"Normal VaR {CL}"    : s.aggregate(var_normal, CL=CL, cf=False),
-            f"Normal CF VaR {CL}" : s.aggregate(var_normal, CL=CL, cf=True),
-            f"ES {CL}"            : s.aggregate(es, CL=CL),
-            "Max Drawdown"        : s.aggregate(drawdown, rets=True, maxd=True, percent=True),
-            "Minimum"             : s.aggregate(np.min),
-            "Maximum"             : s.aggregate(np.max)
+            "(Ann.) Return"        : s.aggregate(annualize_returns, ppy=ppy),
+            "(Ann.) Std"           : s.aggregate(annualize_std, ppy=ppy),
+            "Skewness"             : s.aggregate(skewness),
+            "Kurtosis"             : s.aggregate(kurtosis, excess=excess),
+            f"VaR {CL}"            : s.aggregate(var, CL=CL),
+            f"Normal VaR {CL}"     : s.aggregate(var_normal, CL=CL, left=left, cf=False),
+            f"Normal CF VaR {CL}"  : s.aggregate(var_normal, CL=CL, left=left, cf=True),
+            f"Normal tStudent {CL}": s.aggregate(var_tstudent, CL=CL, left=left, **kwargs),
+            f"ES {CL}"             : s.aggregate(es, CL=CL, left=left),
+            "Max Drawdown"         : s.aggregate(drawdown, rets=True, maxd=True, percent=True),
+            "Minimum"              : s.aggregate(np.min),
+            "Maximum"              : s.aggregate(np.max)
         } 
         return pd.DataFrame(stats).T
     else:
