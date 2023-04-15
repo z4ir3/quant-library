@@ -3,11 +3,11 @@ import numpy as np
 import yfinance as yf
 # import seaborn as sns
 # import statsmodels.api as sm
-from statsmodels.distributions.empirical_distribution import ECDF 
-from scipy.optimize import minimize
-# from numpy.linalg import inv
 from math import gamma 
 from scipy import stats, integrate
+from scipy.optimize import minimize
+from statsmodels.distributions.empirical_distribution import ECDF 
+# from numpy.linalg import inv
 from pandas_datareader import data
 from datetime import date, datetime, timedelta
 import matplotlib.pyplot as plt
@@ -324,7 +324,8 @@ def var_normal(
         left: bool   = True
     ) -> pd.Series or float:
     '''
-    Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns using the parametric Gaussian method.
+    Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns using 
+    the parametric Gaussian method.
     If cf = True, return the Cornish-Fisher cumulants quantile.
     '''
     if isinstance(s, pd.DataFrame):
@@ -340,6 +341,31 @@ def var_normal(
             q = q + (q**2 - 1)*S/6 + (q**3 - 3*q)*(K-3)/24 - (2*q**3 - 5*q)*(S**2)/36
             #q = q + (q**2 - 1)*S/6 + (q**3 - 3*q)*(K-3*s.std()**2)/24 - (2*q**3 - 5*q)*(S**2)/36
         return s.mean() + q * s.std(ddof=ddof)
+    else:
+        raise TypeError("Expected pd.DataFrame or pd.Series")
+
+
+def var_tstudent(
+        s, 
+        CL: float    = 99/100, 
+        left: bool   = True
+    ) -> pd.Series or float:
+    '''
+    Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns using 
+    the t-Student parametric method.
+    '''
+    if isinstance(s, pd.DataFrame):
+        return s.aggregate(var_tstudent, CL=CL, left=left)
+    elif isinstance(s, pd.Series):
+        tdist = ql.dist_fit(s, dtype="t")
+        df = tdist["df"]
+        mu = tdist["mu"]
+        sc = tdist["scale"]
+        if left:
+            q = stats.t.ppf(1-CL, df=df, loc=mu, scale=((df-2)/df)**(0.5))
+        else:
+            q = stats.t.ppf(CL, df=df, loc=mu, scale=((df-2)/df)**(0.5))
+        return s.mean() + q * (sc**2*df/(df-2))**(0.5)
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
 
@@ -623,6 +649,8 @@ def dist_tstudent(
               It has mean = mu and variance = scale**2 * df/(df-2), if df>2
     - cum   : True for evaluating the CDF at input point x
             : False for evaluating the PDF at input point x
+    The relationship between the "scale" parameter and the sample standard deviation
+    (i.e., volatility), say 'sigma', of the input data is scale = sigma * ((df-2)/df)**0.5
     '''
     if cum:
         if stdz:
