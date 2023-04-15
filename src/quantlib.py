@@ -348,27 +348,40 @@ def var_normal(
 def var_tstudent(
         s, 
         CL: float    = 99/100, 
-        left: bool   = True
+        left: bool   = True,
+        **kwargs
     ) -> pd.Series or float:
     '''
     Computes the (1-CL)% Value-at-Risk of a pd.Dataframe or pd.Series of returns using 
     the t-Student parametric method.
+    The hypothesized t-Student distribution parameters are found via MLE
+    or a input kwargs 'df' of degrees of freedom can be given (then, no MLE is done). 
     '''
     if isinstance(s, pd.DataFrame):
-        return s.aggregate(var_tstudent, CL=CL, left=left)
+        return s.aggregate(var_tstudent, CL=CL, left=left, **kwargs)
     elif isinstance(s, pd.Series):
-        tdist = ql.dist_fit(s, dtype="t")
-        df = tdist["df"]
-        mu = tdist["mu"]
-        sc = tdist["scale"]
+        try:
+            df = kwargs["df"]
+        except:
+            tdist = dist_fit(s, dtype="t")
+            df = tdist["df"]
+            sc = tdist["scale"]
+                 
         if left:
-            q = stats.t.ppf(1-CL, df=df, loc=mu, scale=((df-2)/df)**(0.5))
+            q = stats.t.ppf(1-CL, df=df, loc=0, scale=((df-2)/df)**(0.5))
         else:
-            q = stats.t.ppf(CL, df=df, loc=mu, scale=((df-2)/df)**(0.5))
-        return s.mean() + q * (sc**2*df/(df-2))**(0.5)
+            q = stats.t.ppf(CL, df=df, loc=0, scale=((df-2)/df)**(0.5))
+        
+        try:
+            # This:
+            #return s.mean() + q * (sc**2*df/(df-2))**(0.5)
+            # or this:
+            return s.mean() + q * s.std()**(0.5) * (sc*(df/(df-2))**(0.5))**(0.5)
+        except:
+            return s.mean() + q * s.std()
     else:
         raise TypeError("Expected pd.DataFrame or pd.Series")
-
+    
 
 def es(
         s,
