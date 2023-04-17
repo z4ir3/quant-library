@@ -1060,7 +1060,8 @@ def covmat(
         ddof: int = 1
     ) -> pd.DataFrame or float:
     '''
-    Returns the sample covariance matrix (n-by-n) of a pd.DataFrame of n times series returns 
+    Returns the sample covariance matrix (n-by-n) of a pd.DataFrame of n times series returns.
+    If 'r' is an input series, then returns the standard deviation.
     '''
     if isinstance(r, pd.Series):
         return r.std(ddof=ddof)**2
@@ -1074,7 +1075,7 @@ def covmat_cc(r,
               ddof: int = 1
     ) -> pd.DataFrame:
     '''
-    Returns a covariance matrix using the Elton/Gruber Constant Correlation model
+    Returns a covariance matrix using the Constant Correlation model
     '''
     if isinstance(r, pd.Series):
         return r.std(ddof=ddof)**2
@@ -1116,4 +1117,4 @@ def covmat_shrinkage(
         if r.shape[1] == 1:
             return r.std(ddof=ddof)**2
         else:
-            return delta * covmat_cc(r) + (1-delta) * covmat(r)
+            return delta * covmat(r) + (1-delta) * covmat_cc(r)
